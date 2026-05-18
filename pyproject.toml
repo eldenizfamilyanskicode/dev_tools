@@ -1,0 +1,44 @@
+[project]
+name = "dev-tools"
+version = "0.1.0"
+description = "Project-aware CLI tools for local development context."
+readme = "README.md"
+authors = [
+    { name = "Eldeniz Guseinli", email = "eldenizfamilyanskicode@gmail.com" },
+]
+requires-python = ">=3.12"
+dependencies = [
+    "dependency-injector",
+    "base-pydantic-schemas",
+    "base-typed-id",
+    "base-typed-string",
+    "base-typed-int",
+    "typed-time-provider",
+]
+[dependency-groups]
+dev = [
+    "mypy",
+    "ruff",
+    "pytest",
+]
+[project.scripts]
+dev-tools = "dev_tools.cli.main:main"
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "PYI"]
+fixable = ["ALL"]
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+[tool.mypy]
+python_version = "3.14"
+strict = true
+mypy_path = "src"
+explicit_package_bases = true
+[[tool.mypy.overrides]]
+module = "dev_tools.cli.containers.*"
+disable_error_code = ["assignment"]
