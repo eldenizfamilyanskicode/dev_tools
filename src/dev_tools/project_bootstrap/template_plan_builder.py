@@ -355,6 +355,7 @@ class TemplatePlanBuilder:
                 ".venv",
                 "venv",
                 "node_modules",
+                "**/__pycache__",
                 "dist",
                 "build",
                 ".dev_tools",
