@@ -3,7 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from dev_tools.project_bootstrap.bootstrap_file_writer import BootstrapFileWriter
-from dev_tools.project_bootstrap.json_merge_service import JsonArray, JsonMergeService, JsonObject
+from dev_tools.project_bootstrap.json_merge_service import (
+    JsonArray,
+    JsonMergeService,
+    JsonObject,
+)
 from dev_tools.project_bootstrap.managed_block_service import ManagedBlockService
 from dev_tools.project_bootstrap.models import (
     ApplicationType,
@@ -14,10 +18,7 @@ from dev_tools.project_bootstrap.models import (
     StrictnessLevel,
     ToolName,
 )
-from dev_tools.project_bootstrap.json_merge_service import (
-    JsonMergeService,
-    JsonObject,
-)
+
 
 class TemplatePlanBuilder:
     def __init__(
@@ -216,9 +217,9 @@ class TemplatePlanBuilder:
                     },
                 }
 
-        if self.includes_typescript(
-            request.application_type
-        ) and self.has_tool(expanded_tool_names, ToolName.PRETTIER):
+        if self.includes_typescript(request.application_type) and self.has_tool(
+            expanded_tool_names, ToolName.PRETTIER
+        ):
             managed_data["editor.formatOnSave"] = True
             managed_data["[javascript]"] = {
                 "editor.defaultFormatter": "esbenp.prettier-vscode"
@@ -254,9 +255,9 @@ class TemplatePlanBuilder:
             if self.has_tool(expanded_tool_names, ToolName.RUFF):
                 recommendations.append("charliermarsh.ruff")
 
-        if self.includes_typescript(
-            request.application_type
-        ) and self.has_tool(expanded_tool_names, ToolName.PRETTIER):
+        if self.includes_typescript(request.application_type) and self.has_tool(
+            expanded_tool_names, ToolName.PRETTIER
+        ):
             recommendations.append("esbenp.prettier-vscode")
 
         managed_data: JsonObject = {
@@ -324,14 +325,12 @@ class TemplatePlanBuilder:
         force: bool,
         create_only: bool,
     ) -> None:
-        operation: BootstrapFileOperation = (
-            self.bootstrap_file_writer.build_operation(
-                project_root_path=project_root_path,
-                relative_file_path=relative_file_path,
-                content=content,
-                force=force,
-                create_only=create_only,
-            )
+        operation: BootstrapFileOperation = self.bootstrap_file_writer.build_operation(
+            project_root_path=project_root_path,
+            relative_file_path=relative_file_path,
+            content=content,
+            force=force,
+            create_only=create_only,
         )
         operations.append(operation)
 
@@ -420,7 +419,11 @@ fixable = ["ALL"]
 [tool.mypy]
 python_version = "3.12"
 strict = {mypy_strict_value}
-
+[[tool.mypy.overrides]]
+module = [
+    "app.containers.*",
+    "src.containers.*",
+]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 '''

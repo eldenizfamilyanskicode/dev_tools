@@ -40,7 +40,10 @@ strict = true
 mypy_path = "src"
 explicit_package_bases = true
 [[tool.mypy.overrides]]
-module = "dev_tools.cli.containers.*"
+module = [
+    "app.containers.*",
+    "src.containers.*",
+]
 disable_error_code = ["assignment"]
 
 [tool.pytest.ini_options]
