@@ -19,26 +19,39 @@ Each project keeps only local context in `.dev_tools/`:
 It also applies high-level project bootstrap defaults for editor settings,
 Python/TypeScript tooling, and local ignore policy.
 
-## CLI extension model
+## Discover available tools
 
-The root CLI does not know domain commands or menu items.
+Use the generated CLI help as the source of truth for commands and arguments:
 
-Each domain may expose its own contribution class:
+```bash
+dev-tools --help
+dev-tools init --help
+dev-tools tree --help
+dev-tools update-include-files --help
+dev-tools run --help
+dev-tools export-context --help
+```
 
-- `project_init/cli.py`
-- `tree_generation/cli.py`
-- `include_generation/cli.py`
-- `export_context/cli.py`
+Use the interactive menu to see the workflow-oriented actions contributed by
+each domain:
 
-A contribution can:
+```bash
+dev-tools menu
+```
 
-1. register argparse subcommands;
-2. return menu items for `dev-tools menu`;
-3. call only its own domain application service.
+## Current domain contributions
 
-The composition root is `dev_tools.cli.containers.cli_container.CliContainer`.
+The root CLI owns only global wiring and the `menu` command. Every project
+operation is contributed by a domain through a `CliContribution`.
 
-## Commands
+| Domain | Contribution class | Commands | Menu items |
+| --- | --- | --- | --- |
+| `project_init` | `ProjectInitCliContribution` | `init` | Initialize project context |
+| `tree_generation` | `TreeGenerationCliContribution` | `tree` | Show project tree |
+| `include_generation` | `IncludeGenerationCliContribution` | `update-include-files` | Update include files catalog |
+| `export_context` | `ExportContextCliContribution` | `run`, `export-context` | Run export with about + tree; Run export without about/tree; Run export with tree only; Run export with about only |
+
+## Common commands
 
 ```bash
 dev-tools init
@@ -53,6 +66,44 @@ dev-tools run --include-tree --include-about
 dev-tools update-include-files
 dev-tools tree --print
 ```
+
+## CLI extension model
+
+The root CLI does not know domain commands or menu items. It only collects
+domain contributions and asks each contribution to register its own surface.
+
+The shared contract is `dev_tools.cli.contracts.CliContribution`:
+
+1. `register_commands(subparsers)` adds argparse subcommands.
+2. `get_menu_items()` returns menu actions for `dev-tools menu`.
+3. command and menu handlers call the domain application service.
+
+The composition root is `dev_tools.cli.containers.cli_container.CliContainer`.
+That container builds the ordered `cli_contributions` list consumed by:
+
+- `CliArgumentParserFactory`, for command registration;
+- `InteractiveMenuRunner`, for menu item collection.
+
+To add a new domain:
+
+1. Create the domain package, for example `src/dev_tools/new_domain/`.
+2. Put domain behavior in an application service, for example
+   `new_domain/application_service.py`.
+3. Add `new_domain/cli.py` with a `NewDomainCliContribution` class.
+4. Implement `register_commands()` and set each parser default to a command
+   handler with `parser.set_defaults(command_handler=...)`.
+5. Implement `get_menu_items()` and return `CliMenuItem` values if the domain
+   should appear in `dev-tools menu`; return an empty tuple otherwise.
+6. Add a dependency-injector container for the domain under
+   `src/dev_tools/cli/containers/`.
+7. Wire the domain container in `AppContainer`.
+8. Wire the CLI contribution in `CliContainer.cli_contributions`.
+9. Add or update tests for the command parser and domain service.
+10. Update the "Current domain contributions" table above.
+
+A contribution should stay thin: parse CLI arguments, call its own application
+service, print user-facing results, and avoid reaching into another domain's
+service directly.
 
 ## Project bootstrap
 
