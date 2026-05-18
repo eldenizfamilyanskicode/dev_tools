@@ -40,3 +40,19 @@ htmlcov/
 
 # OS
 .DS_Store
+
+# >>> dev-tools managed
+.venv/
+venv/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+__pycache__/
+.eggs/
+*.egg-info/
+*.egg
+node_modules/
+dist/
+build/
+coverage/
+# <<< dev-tools managed

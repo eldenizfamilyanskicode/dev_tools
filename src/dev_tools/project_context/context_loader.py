@@ -15,6 +15,7 @@ from dev_tools.project_context.project_root_resolver import ProjectRootResolver
 from dev_tools.shared.toml_reader import TomlData, TomlReader
 from dev_tools.typings.collections import (
     DirectoryNames,
+    DirectorySuffixes,
     FileExtensions,
     FileNames,
     RelativePathStrings,
@@ -24,6 +25,7 @@ from dev_tools.typings.strings import (
     ChunkFileExtension,
     ChunkFilePrefix,
     DirectoryName,
+    DirectorySuffix,
     EmptyFileMarker,
     FileExtension,
     FileName,
@@ -208,6 +210,10 @@ class ProjectContextLoader:
     def build_exclude_settings(self, exclude_data: TomlData) -> ExcludeSettings:
         return ExcludeSettings(
             directories=self.get_directory_names(exclude_data, "directories"),
+            directory_suffixes=self.get_directory_suffixes(
+                exclude_data,
+                "directory_suffixes",
+            ),
             files=self.get_file_names(exclude_data, "files"),
             extensions=self.get_file_extensions(exclude_data, "extensions"),
         )
@@ -322,6 +328,27 @@ class ProjectContextLoader:
                 continue
 
             result.append(DirectoryName(string_item))
+
+        return tuple(result)
+
+    def get_directory_suffixes(
+        self,
+        data: TomlData,
+        key: str,
+    ) -> DirectorySuffixes:
+        string_items: tuple[str, ...] = self.get_string_items(data=data, key=key)
+        result: list[DirectorySuffix] = []
+
+        for string_item in string_items:
+            normalized_suffix: str = string_item.strip().lower()
+
+            if normalized_suffix == "":
+                continue
+
+            if not normalized_suffix.startswith("."):
+                normalized_suffix = "." + normalized_suffix
+
+            result.append(DirectorySuffix(normalized_suffix))
 
         return tuple(result)
 

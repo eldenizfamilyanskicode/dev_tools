@@ -1,0 +1,13 @@
+{
+  "typeCheckingMode": "strict",
+  "venvPath": ".",
+  "venv": ".venv",
+  "exclude": [
+    ".venv",
+    "venv",
+    "node_modules",
+    "dist",
+    "build",
+    ".dev_tools"
+  ]
+}

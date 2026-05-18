@@ -72,6 +72,7 @@ class IncludeFileCatalogGenerator:
             is_excluded: bool = self.path_matcher.is_excluded_directory_path(
                 relative_path=relative_directory_path,
                 excluded_directory_names=dev_tools_context.exclude.directories,
+                excluded_directory_suffixes=dev_tools_context.exclude.directory_suffixes,
             )
 
             if is_excluded:
@@ -107,6 +108,7 @@ class IncludeFileCatalogGenerator:
         is_excluded_directory_path: bool = self.path_matcher.is_excluded_directory_path(
             relative_path=relative_path.parent,
             excluded_directory_names=dev_tools_context.exclude.directories,
+            excluded_directory_suffixes=dev_tools_context.exclude.directory_suffixes,
         )
         return is_excluded_directory_path
 

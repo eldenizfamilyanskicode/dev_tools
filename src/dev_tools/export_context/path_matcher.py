@@ -5,6 +5,7 @@ from pathlib import Path
 from dev_tools.project_context.models import DevToolsContext
 from dev_tools.typings.collections import (
     DirectoryNames,
+    DirectorySuffixes,
     FileExtensions,
     FileNames,
     RelativePathStrings,
@@ -24,6 +25,7 @@ class PathMatcher:
         if self.is_excluded_directory_path(
             relative_path=relative_path.parent,
             excluded_directory_names=dev_tools_context.exclude.directories,
+            excluded_directory_suffixes=dev_tools_context.exclude.directory_suffixes,
         ):
             return False
 
@@ -58,12 +60,40 @@ class PathMatcher:
         self,
         relative_path: Path,
         excluded_directory_names: DirectoryNames,
+        excluded_directory_suffixes: DirectorySuffixes,
     ) -> bool:
         for path_part in relative_path.parts:
             if path_part == ".":
                 continue
 
             if self.name_exists(path_part, excluded_directory_names):
+                return True
+
+            if self.has_excluded_directory_suffix(
+                directory_name=path_part,
+                excluded_directory_suffixes=excluded_directory_suffixes,
+            ):
+                return True
+
+        return False
+
+    def has_excluded_directory_suffix(
+        self,
+        directory_name: str,
+        excluded_directory_suffixes: DirectorySuffixes,
+    ) -> bool:
+        normalized_directory_name: str = directory_name.lower()
+
+        for excluded_directory_suffix in excluded_directory_suffixes:
+            normalized_suffix: str = str(excluded_directory_suffix).strip().lower()
+
+            if normalized_suffix == "":
+                continue
+
+            if not normalized_suffix.startswith("."):
+                normalized_suffix = "." + normalized_suffix
+
+            if normalized_directory_name.endswith(normalized_suffix):
                 return True
 
         return False

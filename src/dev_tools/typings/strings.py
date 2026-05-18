@@ -15,6 +15,10 @@ class DirectoryName(BaseTypedString):
     pass
 
 
+class DirectorySuffix(BaseTypedString):
+    pass
+
+
 class RelativePathString(BaseTypedString):
     pass
 

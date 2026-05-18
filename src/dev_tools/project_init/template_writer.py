@@ -145,6 +145,13 @@ directories = [
     ".pytest_cache",
     ".mypy_cache",
     ".ruff_cache",
+    ".eggs",
+]
+
+# Directory suffixes. Matched against any directory name suffix.
+directory_suffixes = [
+    ".egg-info",
+    ".dist-info",
 ]
 
 # Exact file names.
@@ -161,6 +168,8 @@ files = [
 
 # Extensions without dot.
 extensions = [
+    "egg",
+    "egg-info",
     "pyc",
     "png",
     "jpg",

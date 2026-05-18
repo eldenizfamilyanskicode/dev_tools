@@ -6,6 +6,7 @@ from base_pydantic_schemas._immutable_dto import ImmutableDTO
 
 from dev_tools.typings.collections import (
     DirectoryNames,
+    DirectorySuffixes,
     FileExtensions,
     FileNames,
     RelativePathStrings,
@@ -52,9 +53,9 @@ class IncludeSettings(ImmutableDTO):
 
 class ExcludeSettings(ImmutableDTO):
     directories: DirectoryNames
+    directory_suffixes: DirectorySuffixes
     files: FileNames
     extensions: FileExtensions
-
 
 class DevToolsContext(ImmutableDTO):
     project: ProjectSettings

@@ -77,6 +77,7 @@ class FileCollector:
             if self.path_matcher.is_excluded_directory_path(
                 relative_path=relative_directory_path,
                 excluded_directory_names=dev_tools_context.exclude.directories,
+                excluded_directory_suffixes=dev_tools_context.exclude.directory_suffixes,
             ):
                 continue
 
