@@ -17,7 +17,6 @@ class ExportContextCliContribution:
         export_context_service: ExportContextService,
     ) -> None:
         self.cli_argument_reader: CliArgumentReader = cli_argument_reader
-        self.cli_shared_argument_registrar: CliSharedArgumentRegistrar
         self.cli_shared_argument_registrar = cli_shared_argument_registrar
         self.export_context_service: ExportContextService = export_context_service
 

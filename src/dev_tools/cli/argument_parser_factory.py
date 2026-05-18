@@ -20,7 +20,6 @@ class CliArgumentParserFactory:
         self.cli_contributions: tuple[CliContribution, ...]
         self.cli_contributions = tuple(cli_contributions)
         self.cli_argument_reader: CliArgumentReader = cli_argument_reader
-        self.cli_shared_argument_registrar: CliSharedArgumentRegistrar
         self.cli_shared_argument_registrar = cli_shared_argument_registrar
         self.interactive_menu_runner: InteractiveMenuRunner = interactive_menu_runner
 

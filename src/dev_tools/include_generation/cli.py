@@ -17,7 +17,6 @@ class IncludeGenerationCliContribution:
         include_file_update_service: IncludeFileUpdateService,
     ) -> None:
         self.cli_argument_reader: CliArgumentReader = cli_argument_reader
-        self.cli_shared_argument_registrar: CliSharedArgumentRegistrar
         self.cli_shared_argument_registrar = cli_shared_argument_registrar
         self.include_file_update_service: IncludeFileUpdateService
         self.include_file_update_service = include_file_update_service

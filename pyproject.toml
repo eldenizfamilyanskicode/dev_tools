@@ -42,3 +42,6 @@ explicit_package_bases = true
 [[tool.mypy.overrides]]
 module = "dev_tools.cli.containers.*"
 disable_error_code = ["assignment"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
