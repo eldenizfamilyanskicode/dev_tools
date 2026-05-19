@@ -189,6 +189,7 @@ extensions = [
     "woff",
     "woff2",
     "ttf",
+    "env",
 ]
 """
 
