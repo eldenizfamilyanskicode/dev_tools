@@ -168,9 +168,16 @@ files = [
 
 # Extensions without dot.
 extensions = [
+    # python
     "egg",
     "egg-info",
     "pyc",
+    "pyo",
+    "pyd",
+    "pyi",
+    "pyz",
+
+    # images
     "png",
     "jpg",
     "jpeg",
@@ -178,18 +185,132 @@ extensions = [
     "webp",
     "ico",
     "svg",
+    "bmp",
+    "tiff",
+    "avif",
+    "heic",
+    "psd",
+    "ai",
+
+    # documents
     "pdf",
+    "doc",
+    "docx",
+    "xls",
+    "xlsx",
+    "ppt",
+    "pptx",
+    "odt",
+    "ods",
+    "odp",
+    "pages",
+    "numbers",
+    "key",
+
+
+    # archives
     "zip",
     "tar",
     "gz",
     "7z",
+    "rar",
+    "bz2",
+    "xz",
+    "lz",
+    "lz4",
+    "zst",
+    "iso",
+
+    # audio/video
     "mp3",
     "mp4",
     "mov",
+    "wav",
+    "ogg",
+    "flac",
+    "m4a",
+    "avi",
+    "mkv",
+    "webm",
+    "wmv",
+    "mpeg",
+    "mpg",
+    "aac",
+
+    # fonts
     "woff",
     "woff2",
     "ttf",
+    "otf",
+    "eot",
+
+
+    # env / secrets
     "env",
+    "pem",
+    "key",
+    "crt",
+    "p12",
+    "pfx",
+    "cer",
+    "der",
+    "csr",
+    "pub",
+    "asc",
+
+    # databases
+    "db",
+    "sqlite",
+    "sqlite3",
+    "mdb",
+    "accdb",
+    "parquet",
+
+
+    # logs / runtime
+    "log",
+    "pid",
+    "lock",
+    "seed",
+    "stackdump",
+
+    # build artifacts
+    "class",
+    "o",
+    "obj",
+    "so",
+    "dll",
+    "exe",
+    "dylib",
+    "a",
+    "lib",
+
+    # package artifacts
+    "whl",
+    "gem",
+    "jar",
+    "war",
+    "ear",
+    "apk",
+    "ipa",
+    "deb",
+    "rpm",
+    "msi",
+
+    # caches
+    "cache",
+    "tmp",
+    "temp",
+
+
+    # notebooks / model artifacts
+    "ipynb",
+    "onnx",
+    "pt",
+    "pth",
+    "ckpt",
+    "safetensors",
+    "bin",
 ]
 """
 
