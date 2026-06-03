@@ -93,6 +93,32 @@ def test_gitignore_managed_block_body_matches_template(tmp_path: Path) -> None:
     assert gitignore_content == expected_content
 
 
+def test_gitignore_managed_block_has_common_project_defaults(
+    tmp_path: Path,
+) -> None:
+    bootstrap_project(tmp_path)
+
+    gitignore_content: str = (tmp_path / ".gitignore").read_text(encoding="utf-8")
+    expected_gitignore_entries: tuple[str, ...] = (
+        "*.py[cod]",
+        ".venv-*/",
+        ".nox/",
+        ".pyright/",
+        "node_modules/",
+        ".next/",
+        ".vscode/",
+        ".env.*",
+        "llm.env",
+        "mongo.agent.env",
+        "!.env.example",
+        ".DS_Store",
+        "Thumbs.db",
+    )
+
+    for expected_gitignore_entry in expected_gitignore_entries:
+        assert expected_gitignore_entry in gitignore_content
+
+
 def test_gitignore_managed_block_is_replaced_idempotently(
     tmp_path: Path,
 ) -> None:
