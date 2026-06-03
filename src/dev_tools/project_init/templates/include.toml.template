@@ -1,0 +1,11 @@
+# Relative directories from project root.
+# Active values include every file inside the directory.
+directories = []
+
+# Exact relative file paths from project root.
+# Run `dev-tools update-include-files` to generate a commented catalog.
+files = []
+
+# Extensions without dot.
+# Active values include files by extension unless excluded.
+extensions = []

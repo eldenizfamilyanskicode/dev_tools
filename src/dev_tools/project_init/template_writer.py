@@ -1,7 +1,19 @@
 from __future__ import annotations
 
+from importlib.resources import files
 from pathlib import Path
 
+from dev_tools.project_init.constants import (
+    ABOUT_FILE_PATH_TEMPLATE_TOKEN,
+    ABOUT_TEMPLATE_FILE_NAME,
+    CONTEXT_TEMPLATE_FILE_NAME,
+    DEFAULT_ABOUT_FILE_NAME,
+    DEFAULT_PROJECT_CONTEXT_DIRECTORY_NAME,
+    EXCLUDE_TEMPLATE_FILE_NAME,
+    INCLUDE_TEMPLATE_FILE_NAME,
+    PROJECT_CONTEXT_TEMPLATE_PACKAGE,
+    PROJECT_NAME_TEMPLATE_TOKEN,
+)
 from dev_tools.shared.file_system import FileSystem
 
 
@@ -19,7 +31,9 @@ class ProjectContextTemplateWriter:
             project_root=project_root,
             about_file_path=about_file_path,
         )
-        dev_tools_directory: Path = project_root / ".dev_tools"
+        dev_tools_directory: Path = (
+            project_root / DEFAULT_PROJECT_CONTEXT_DIRECTORY_NAME
+        )
         context_file_path: Path = dev_tools_directory / "context.toml"
         include_file_path: Path = dev_tools_directory / "include.toml"
         exclude_file_path: Path = dev_tools_directory / "exclude.toml"
@@ -56,7 +70,11 @@ class ProjectContextTemplateWriter:
         about_file_path: Path | None,
     ) -> Path:
         if about_file_path is None:
-            return project_root / ".dev_tools" / "about_current_project.md"
+            return (
+                project_root
+                / DEFAULT_PROJECT_CONTEXT_DIRECTORY_NAME
+                / DEFAULT_ABOUT_FILE_NAME
+            )
 
         if about_file_path.is_absolute():
             return about_file_path.resolve()
@@ -76,243 +94,36 @@ class ProjectContextTemplateWriter:
         escaped_about_file_path: str = self.escape_toml_string(
             about_file_path_as_string
         )
+        template_text: str = self.read_template(CONTEXT_TEMPLATE_FILE_NAME)
+        rendered_template: str = template_text.replace(
+            PROJECT_NAME_TEMPLATE_TOKEN,
+            escaped_project_name,
+        )
 
-        return f"""[project]
-name = "{escaped_project_name}"
-root_path = "."
-
-[about]
-file_path = "{escaped_about_file_path}"
-
-[output]
-directory = ".dev_tools/output"
-combined_context_file_name = "combined_context.txt"
-tree_file_name = "tree.txt"
-chunk_file_prefix = "context_"
-chunk_file_extension = ".txt"
-
-[export]
-file_separator = "--- FILE SEPARATOR ---"
-empty_file_marker = "# File is empty"
-maximum_lines_per_chunk = 2500
-"""
+        return rendered_template.replace(
+            ABOUT_FILE_PATH_TEMPLATE_TOKEN,
+            escaped_about_file_path,
+        )
 
     def build_about_template(self, project_root: Path) -> str:
-        return f"""# About current project: {project_root.name}
-
-## Purpose
-
-Describe what this project does.
-
-## Architecture
-
-Describe key modules, boundaries, and data flow.
-
-## Current task context
-
-Describe what you want the model to understand before reading selected files.
-"""
+        template_text: str = self.read_template(ABOUT_TEMPLATE_FILE_NAME)
+        return template_text.replace(
+            PROJECT_NAME_TEMPLATE_TOKEN,
+            project_root.name,
+        )
 
     def build_include_template(self) -> str:
-        return """# Relative directories from project root.
-# Active values include every file inside the directory.
-directories = []
-
-# Exact relative file paths from project root.
-# Run `dev-tools update-include-files` to generate a commented catalog.
-files = []
-
-# Extensions without dot.
-# Active values include files by extension unless excluded.
-extensions = []
-"""
+        return self.read_template(INCLUDE_TEMPLATE_FILE_NAME)
 
     def build_exclude_template(self) -> str:
-        return """# Directory names. Matched against any path part.
-directories = [
-    ".git",
-    ".dev_tools",
-    ".idea",
-    ".vscode",
-    ".venv",
-    "venv",
-    "node_modules",
-    ".next",
-    "dist",
-    "build",
-    "coverage",
-    "__pycache__",
-    ".pytest_cache",
-    ".mypy_cache",
-    ".ruff_cache",
-    ".eggs",
-]
+        return self.read_template(EXCLUDE_TEMPLATE_FILE_NAME)
 
-# Directory suffixes. Matched against any directory name suffix.
-directory_suffixes = [
-    ".egg-info",
-    ".dist-info",
-]
-
-# Exact file names.
-files = [
-    ".env",
-    ".env.local",
-    ".env.development",
-    ".env.production",
-    "package-lock.json",
-    "pnpm-lock.yaml",
-    "yarn.lock",
-    "uv.lock",
-]
-
-# Extensions without dot.
-extensions = [
-    # python
-    "egg",
-    "egg-info",
-    "pyc",
-    "pyo",
-    "pyd",
-    "pyi",
-    "pyz",
-
-    # images
-    "png",
-    "jpg",
-    "jpeg",
-    "gif",
-    "webp",
-    "ico",
-    "svg",
-    "bmp",
-    "tiff",
-    "avif",
-    "heic",
-    "psd",
-    "ai",
-
-    # documents
-    "pdf",
-    "doc",
-    "docx",
-    "xls",
-    "xlsx",
-    "ppt",
-    "pptx",
-    "odt",
-    "ods",
-    "odp",
-    "pages",
-    "numbers",
-    "key",
-
-
-    # archives
-    "zip",
-    "tar",
-    "gz",
-    "7z",
-    "rar",
-    "bz2",
-    "xz",
-    "lz",
-    "lz4",
-    "zst",
-    "iso",
-
-    # audio/video
-    "mp3",
-    "mp4",
-    "mov",
-    "wav",
-    "ogg",
-    "flac",
-    "m4a",
-    "avi",
-    "mkv",
-    "webm",
-    "wmv",
-    "mpeg",
-    "mpg",
-    "aac",
-
-    # fonts
-    "woff",
-    "woff2",
-    "ttf",
-    "otf",
-    "eot",
-
-
-    # env / secrets
-    "env",
-    "pem",
-    "key",
-    "crt",
-    "p12",
-    "pfx",
-    "cer",
-    "der",
-    "csr",
-    "pub",
-    "asc",
-
-    # databases
-    "db",
-    "sqlite",
-    "sqlite3",
-    "mdb",
-    "accdb",
-    "parquet",
-
-
-    # logs / runtime
-    "log",
-    "pid",
-    "lock",
-    "seed",
-    "stackdump",
-
-    # build artifacts
-    "class",
-    "o",
-    "obj",
-    "so",
-    "dll",
-    "exe",
-    "dylib",
-    "a",
-    "lib",
-
-    # package artifacts
-    "whl",
-    "gem",
-    "jar",
-    "war",
-    "ear",
-    "apk",
-    "ipa",
-    "deb",
-    "rpm",
-    "msi",
-
-    # caches
-    "cache",
-    "tmp",
-    "temp",
-
-
-    # notebooks / model artifacts
-    "ipynb",
-    "onnx",
-    "pt",
-    "pth",
-    "ckpt",
-    "safetensors",
-    "bin",
-]
-"""
+    def read_template(self, template_file_name: str) -> str:
+        return (
+            files(PROJECT_CONTEXT_TEMPLATE_PACKAGE)
+            .joinpath(template_file_name)
+            .read_text(encoding="utf-8")
+        )
 
     def format_context_path(
         self,

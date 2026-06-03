@@ -1,0 +1,18 @@
+[project]
+name = "{{PROJECT_NAME}}"
+root_path = "."
+
+[about]
+file_path = "{{ABOUT_FILE_PATH}}"
+
+[output]
+directory = ".dev_tools/output"
+combined_context_file_name = "combined_context.txt"
+tree_file_name = "tree.txt"
+chunk_file_prefix = "context_"
+chunk_file_extension = ".txt"
+
+[export]
+file_separator = "--- FILE SEPARATOR ---"
+empty_file_marker = "# File is empty"
+maximum_lines_per_chunk = 2500

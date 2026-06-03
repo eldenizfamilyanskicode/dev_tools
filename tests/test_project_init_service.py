@@ -65,6 +65,39 @@ def test_old_dev_tools_init_behavior_still_works(tmp_path: Path) -> None:
     assert (tmp_path / ".dev_tools" / "output").is_dir()
     assert include_file_update_service.requested_project_root == tmp_path
     assert len(project_bootstrap_service.requests) == 1
-    assert ".dev_tools/" in (git_info_directory / "exclude").read_text(
+    assert ".dev_tools/" in (git_info_directory / "exclude").read_text(encoding="utf-8")
+
+
+def test_project_context_template_writer_renders_resource_templates(
+    tmp_path: Path,
+) -> None:
+    file_system: FileSystem = FileSystem()
+    template_writer: ProjectContextTemplateWriter = ProjectContextTemplateWriter(
+        file_system
+    )
+    custom_about_file_path: Path = Path("docs/about_current_project.md")
+
+    resolved_about_file_path: Path = template_writer.write_templates(
+        project_root=tmp_path,
+        force=False,
+        about_file_path=custom_about_file_path,
+    )
+
+    dev_tools_directory: Path = tmp_path / ".dev_tools"
+    context_content: str = (dev_tools_directory / "context.toml").read_text(
         encoding="utf-8"
     )
+    include_content: str = (dev_tools_directory / "include.toml").read_text(
+        encoding="utf-8"
+    )
+    exclude_content: str = (dev_tools_directory / "exclude.toml").read_text(
+        encoding="utf-8"
+    )
+    about_content: str = resolved_about_file_path.read_text(encoding="utf-8")
+
+    assert resolved_about_file_path == (tmp_path / custom_about_file_path).resolve()
+    assert f'name = "{tmp_path.name}"' in context_content
+    assert 'file_path = "docs/about_current_project.md"' in context_content
+    assert about_content.startswith(f"# About current project: {tmp_path.name}")
+    assert "directories = []" in include_content
+    assert '"node_modules",' in exclude_content

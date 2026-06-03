@@ -1,0 +1,13 @@
+# About current project: {{PROJECT_NAME}}
+
+## Purpose
+
+Describe what this project does.
+
+## Architecture
+
+Describe key modules, boundaries, and data flow.
+
+## Current task context
+
+Describe what you want the model to understand before reading selected files.
