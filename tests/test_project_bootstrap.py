@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import json
+from importlib.resources import files
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from dev_tools.project_bootstrap.application_service import ProjectBootstrapService
 from dev_tools.project_bootstrap.bootstrap_file_writer import BootstrapFileWriter
@@ -16,6 +17,10 @@ from dev_tools.project_bootstrap.models import (
 )
 from dev_tools.project_bootstrap.template_plan_builder import TemplatePlanBuilder
 from dev_tools.shared.file_system import FileSystem
+from dev_tools.templates.constants import (
+    DEV_TOOLS_TEMPLATE_PACKAGE,
+    GITIGNORE_MANAGED_BLOCK_TEMPLATE_FILE_NAME,
+)
 
 
 def build_project_bootstrap_service() -> ProjectBootstrapService:
@@ -55,7 +60,8 @@ def bootstrap_project(
 
 
 def read_json(file_path: Path) -> dict[str, Any]:
-    return json.loads(file_path.read_text(encoding="utf-8"))
+    json_content: Any = json.loads(file_path.read_text(encoding="utf-8"))
+    return cast(dict[str, Any], json_content)
 
 
 def test_gitignore_managed_block_is_appended_once(tmp_path: Path) -> None:
@@ -68,15 +74,31 @@ def test_gitignore_managed_block_is_appended_once(tmp_path: Path) -> None:
     assert gitignore_content.count(".venv/") == 1
 
 
+def test_gitignore_managed_block_body_matches_template(tmp_path: Path) -> None:
+    bootstrap_project(tmp_path)
+
+    gitignore_content: str = (tmp_path / ".gitignore").read_text(encoding="utf-8")
+    template_content: str = (
+        files(DEV_TOOLS_TEMPLATE_PACKAGE)
+        .joinpath(GITIGNORE_MANAGED_BLOCK_TEMPLATE_FILE_NAME)
+        .read_text(encoding="utf-8")
+    )
+    stripped_template_content: str = template_content.rstrip("\n")
+    expected_content: str = (
+        "# >>> dev-tools managed\n"
+        f"{stripped_template_content}\n"
+        "# <<< dev-tools managed\n"
+    )
+
+    assert gitignore_content == expected_content
+
+
 def test_gitignore_managed_block_is_replaced_idempotently(
     tmp_path: Path,
 ) -> None:
     gitignore_file_path: Path = tmp_path / ".gitignore"
     gitignore_file_path.write_text(
-        "custom.log\n\n"
-        "# >>> dev-tools managed\n"
-        "old-cache/\n"
-        "# <<< dev-tools managed\n",
+        "custom.log\n\n# >>> dev-tools managed\nold-cache/\n# <<< dev-tools managed\n",
         encoding="utf-8",
     )
 
@@ -135,23 +157,23 @@ def test_vscode_extensions_json_merge_avoids_duplicates(
 
 def test_existing_pyproject_is_skipped_by_default(tmp_path: Path) -> None:
     pyproject_file_path: Path = tmp_path / "pyproject.toml"
-    pyproject_file_path.write_text("[project]\nname = \"custom\"\n", encoding="utf-8")
+    pyproject_file_path.write_text('[project]\nname = "custom"\n', encoding="utf-8")
 
     bootstrap_project(tmp_path)
 
     assert pyproject_file_path.read_text(encoding="utf-8") == (
-        "[project]\nname = \"custom\"\n"
+        '[project]\nname = "custom"\n'
     )
 
 
 def test_force_overwrites_force_managed_files(tmp_path: Path) -> None:
     pyproject_file_path: Path = tmp_path / "pyproject.toml"
-    pyproject_file_path.write_text("[project]\nname = \"custom\"\n", encoding="utf-8")
+    pyproject_file_path.write_text('[project]\nname = "custom"\n', encoding="utf-8")
 
     bootstrap_project(tmp_path, force=True)
 
     pyproject_content: str = pyproject_file_path.read_text(encoding="utf-8")
-    assert "name = \"custom\"" not in pyproject_content
+    assert 'name = "custom"' not in pyproject_content
     assert "[tool.ruff]" in pyproject_content
 
 
@@ -160,4 +182,3 @@ def test_dry_run_does_not_write_files(tmp_path: Path) -> None:
 
     assert not (tmp_path / ".gitignore").exists()
     assert not (tmp_path / ".vscode" / "settings.json").exists()
-

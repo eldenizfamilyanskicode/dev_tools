@@ -36,7 +36,7 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.setuptools.package-data]
-"dev_tools.project_init.templates" = ["*.template"]
+"dev_tools.templates" = ["*.template"]
 
 [tool.mypy]
 python_version = "3.14"

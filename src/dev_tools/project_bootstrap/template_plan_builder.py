@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from importlib.resources import files
 from pathlib import Path
 
 from dev_tools.project_bootstrap.bootstrap_file_writer import BootstrapFileWriter
@@ -17,6 +18,10 @@ from dev_tools.project_bootstrap.models import (
     ProjectBootstrapRequest,
     StrictnessLevel,
     ToolName,
+)
+from dev_tools.templates.constants import (
+    DEV_TOOLS_TEMPLATE_PACKAGE,
+    GITIGNORE_MANAGED_BLOCK_TEMPLATE_FILE_NAME,
 )
 
 
@@ -168,21 +173,7 @@ class TemplatePlanBuilder:
             current_content=current_content,
             begin_marker="# >>> dev-tools managed",
             end_marker="# <<< dev-tools managed",
-            block_body=(
-                ".venv/",
-                "venv/",
-                ".ruff_cache/",
-                ".mypy_cache/",
-                ".pytest_cache/",
-                "__pycache__/",
-                ".eggs/",
-                "*.egg-info/",
-                "*.egg",
-                "node_modules/",
-                "dist/",
-                "build/",
-                "coverage/",
-            ),
+            block_body=self.read_gitignore_managed_block_template(),
         )
         self.add_text_operation(
             operations=operations,
@@ -192,6 +183,14 @@ class TemplatePlanBuilder:
             force=request.force,
             create_only=False,
         )
+
+    def read_gitignore_managed_block_template(self) -> tuple[str, ...]:
+        template_content: str = (
+            files(DEV_TOOLS_TEMPLATE_PACKAGE)
+            .joinpath(GITIGNORE_MANAGED_BLOCK_TEMPLATE_FILE_NAME)
+            .read_text(encoding="utf-8")
+        )
+        return tuple(template_content.splitlines())
 
     def add_vscode_settings_operation(
         self,

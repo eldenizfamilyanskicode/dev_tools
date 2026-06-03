@@ -11,10 +11,10 @@ from dev_tools.project_init.constants import (
     DEFAULT_PROJECT_CONTEXT_DIRECTORY_NAME,
     EXCLUDE_TEMPLATE_FILE_NAME,
     INCLUDE_TEMPLATE_FILE_NAME,
-    PROJECT_CONTEXT_TEMPLATE_PACKAGE,
     PROJECT_NAME_TEMPLATE_TOKEN,
 )
 from dev_tools.shared.file_system import FileSystem
+from dev_tools.templates.constants import DEV_TOOLS_TEMPLATE_PACKAGE
 
 
 class ProjectContextTemplateWriter:
@@ -120,7 +120,7 @@ class ProjectContextTemplateWriter:
 
     def read_template(self, template_file_name: str) -> str:
         return (
-            files(PROJECT_CONTEXT_TEMPLATE_PACKAGE)
+            files(DEV_TOOLS_TEMPLATE_PACKAGE)
             .joinpath(template_file_name)
             .read_text(encoding="utf-8")
         )
