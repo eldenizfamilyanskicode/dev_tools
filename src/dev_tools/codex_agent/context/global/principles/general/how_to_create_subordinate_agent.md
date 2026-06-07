@@ -1,0 +1,1 @@
+- Создавай нижестоящих агентов через codex_app.fork_thread с environment: {"type":"same-directory"}.
