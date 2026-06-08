@@ -11,42 +11,48 @@ schema:
       allowed_values:
         - required
         - optional
+        - by_request
+        - conditional
     importance:
-      description: "Важность агента."
-      allowed_values:
-        "1x": "Вызывается один агент."
-        "2x": "Агент создает двух агентов и разделяет им роли/задачи."
-        "Nx": "Агент создает N агентов и разделяет им роли/задачи."
+      description: |
+        Положительное целое число, определяющее масштаб исполнения роли.
+        1 означает, что роль выполняется одним агентом самостоятельно.
+        2 и больше означает, что агент обязан декомпозировать свою задачу
+        на соответствующее количество подзадач и делегировать их новым агентам.
+      type: integer
+      minimum: 1
+
 
 agents:
   - name: "Human Facing"
     mandatory: required
-    importance: "1x"
+    importance: 1
     description: "Необходим для запуска первого агента"
 
-  - name: "Problem hilghlither"
+  - name: "Problem highlighter"
     mandatory: required
-    importance: "1x"
+    importance: 1
     description: "Изучает проблему в системе. Масштабы, в какие слои разрослась, т.е. уточняет проблему и ставит цель для исследования"
 
   - name: "Researcher"
     mandatory: required
-    importance: "1x"
-    description: "Читает из файла задачу и делает максимально широкое исследование. Нужно минимум 20 ресурсов. Очень подробно"
+    importance: 1
+    description: "Читает из файла задачу и делает исследование"
+
 
   - name: "Specificator"
     mandatory: required
-    importance: "1x"
+    importance: 1
     description: "Текущее положение дел. Желаемое состояние дел. Ограничения. Критерии принятия решения задачи. Риски."
 
   - name: "Agent Resources"
     mandatory: required
-    importance: "1x"
+    importance: 1
     description: "Пишет список агентов и их обязанности"
 
   - name: "Engineer + Quality checker"
     mandatory: required
-    importance: "1x"
+    importance: 1
     loop:
       until: "quality_failed and iteration_num < 3"
     description: |
@@ -58,17 +64,18 @@ agents:
 
   - name: "Overall solution checker"
     mandatory: required
-    importance: "1x"
+    importance: 1
     description: |
       Более критическая роль нежели Quality checker
       От решения сильно зависит стоит ли принимать решение. Если решение не прошло, то надо декомпозировать задачу и вызвать дополнительных исполнителей
 
   - name: "Fail analyzer"
     mandatory: optional
-    importance: "1x"
+    importance: 1
     description: "Имя все говорит"
 
   - name: "Task Decomposer"
-    mandatory: optional
-    importance: "1x"
+    mandatory: conditional
+    condition: "Вызывается агентом для разбиения задачи на подзадачи."
+    importance: 1
     description: "Только если группа по решению задачи попросила это сделать или если Overall"
