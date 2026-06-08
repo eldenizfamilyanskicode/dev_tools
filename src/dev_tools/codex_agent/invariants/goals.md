@@ -8,3 +8,9 @@
 
 И далее система должна организовать всю необходимую работу.
 Пользователь может поменять некоторые настройки локально.
+
+
+events.yaml - append only. only current flow
+state.yaml - current flow state.
+
+Не усложняем модели correlation_id, last_event_id и другими мало полезными полями на текущем этапе.
