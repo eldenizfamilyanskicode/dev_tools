@@ -30,6 +30,8 @@ agents:
     description: "Необходим для запуска первого агента"
     input:
     outputs:
+    possible_events:
+
 
   - name: "Problem highlighter"
     mandatory: required
@@ -37,6 +39,7 @@ agents:
     description: "Изучает проблему в системе. Масштабы, в какие слои разрослась, т.е. уточняет проблему и ставит цель для исследования"
     input:
     outputs:
+    possible_events:
 
   - name: "Researcher"
     mandatory: required
@@ -44,6 +47,7 @@ agents:
     description: "Читает из файла задачу и делает исследование"
     input:
     outputs:
+    possible_events:
 
 
   - name: "Specificator"
@@ -52,6 +56,7 @@ agents:
     description: "Текущее положение дел. Желаемое состояние дел. Ограничения. Критерии принятия решения задачи. Риски."
     input:
     outputs:
+    possible_events:
 
   - name: "Agent Resources"
     mandatory: required
@@ -59,6 +64,7 @@ agents:
     description: "Пишет список агентов и их обязанности"
     input:
     outputs:
+    possible_events:
 
   - name: "Engineer + Quality checker"
     mandatory: required
@@ -73,6 +79,7 @@ agents:
       Имена и точные роли сильно зависят от задачи
     input:
     outputs:
+    possible_events:
 
   - name: "Overall solution checker"
     mandatory: required
@@ -82,6 +89,7 @@ agents:
       От решения сильно зависит стоит ли принимать решение. Если решение не прошло, то надо декомпозировать задачу и вызвать дополнительных исполнителей
     input:
     outputs:
+    possible_events:
 
   - name: "Fail analyzer"
     mandatory: optional
@@ -89,6 +97,7 @@ agents:
     description: "Имя все говорит"
     input:
     outputs:
+    possible_events:
 
   - name: "Task Decomposer"
     mandatory: conditional
@@ -97,3 +106,4 @@ agents:
     description: "Только если группа по решению задачи попросила это сделать или если Overall"
     input:
     outputs:
+    possible_events:
