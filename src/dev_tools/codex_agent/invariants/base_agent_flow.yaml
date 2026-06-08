@@ -13,11 +13,6 @@ schema:
         - optional
         - by_request
         - conditional
-      values:
-        required: "Всегда участвует в данном базовом потоке. Без него результат нельзя считать управляемым."
-        conditional: "Запускается автоматически, если выполнено условие в поле condition."
-        by_request: "Запускается только если пользователь или старший агент явно попросил именно эту роль."
-        optional: "Может быть полезен, но не влияет на корректность базового потока."
     importance:
       description: |
         Положительное целое число, определяющее масштаб исполнения роли.
@@ -37,16 +32,14 @@ agents:
     outputs:
 
   - name: "Problem highlighter"
-    mandatory: conditional
-    condition: "Если задача неоднозначна, масштабная, затрагивает существующую систему или пользователь просит исследовать проблему."
+    mandatory: required
     importance: 1
     description: "Изучает проблему в системе. Масштабы, в какие слои разрослась, т.е. уточняет проблему и ставит цель для исследования"
     input:
     outputs:
 
   - name: "Researcher"
-    mandatory: conditional
-    condition: "Если для решения нужны факты из кода, документации, внешних источников, истории решений или сравнение вариантов."
+    mandatory: required
     importance: 1
     description: "Читает из файла задачу и делает исследование"
     input:
@@ -61,8 +54,7 @@ agents:
     outputs:
 
   - name: "Agent Resources"
-    mandatory: conditional
-    condition: "Если задача требует больше одного специализированного агента, importance > 1 или нужна явная карта ролей перед исполнением."
+    mandatory: required
     importance: 1
     description: "Пишет список агентов и их обязанности"
     input:
@@ -92,8 +84,7 @@ agents:
     outputs:
 
   - name: "Fail analyzer"
-    mandatory: conditional
-    condition: "Если решение провалило финальную проверку, цикл качества исчерпан или причина провала неочевидна."
+    mandatory: optional
     importance: 1
     description: "Имя все говорит"
     input:
@@ -104,3 +95,5 @@ agents:
     condition: "Вызывается агентом для разбиения задачи на подзадачи."
     importance: 1
     description: "Только если группа по решению задачи попросила это сделать или если Overall"
+    input:
+    outputs:
