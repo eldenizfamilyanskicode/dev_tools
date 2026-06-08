@@ -28,27 +28,40 @@ agents:
     mandatory: required
     importance: 1
     description: "Необходим для запуска первого агента"
+    input:
+    outputs:
 
   - name: "Problem highlighter"
-    mandatory: required
+    mandatory: conditional
+    condition: "Если задача неоднозначна, масштабная, затрагивает существующую систему или пользователь просит исследовать проблему."
     importance: 1
     description: "Изучает проблему в системе. Масштабы, в какие слои разрослась, т.е. уточняет проблему и ставит цель для исследования"
+    input:
+    outputs:
 
   - name: "Researcher"
-    mandatory: required
+    mandatory: conditional
+    condition: "Если для решения нужны факты из кода, документации, внешних источников, истории решений или сравнение вариантов."
     importance: 1
     description: "Читает из файла задачу и делает исследование"
+    input:
+    outputs:
 
 
   - name: "Specificator"
     mandatory: required
     importance: 1
     description: "Текущее положение дел. Желаемое состояние дел. Ограничения. Критерии принятия решения задачи. Риски."
+    input:
+    outputs:
 
   - name: "Agent Resources"
-    mandatory: required
+    mandatory: conditional
+    condition: "Если задача требует больше одного специализированного агента, importance > 1 или нужна явная карта ролей перед исполнением."
     importance: 1
     description: "Пишет список агентов и их обязанности"
+    input:
+    outputs:
 
   - name: "Engineer + Quality checker"
     mandatory: required
@@ -61,6 +74,8 @@ agents:
       Если проверка не пройдена, Quality checker обязан вернуть конкретные замечания и минимальный список исправлений для следующей итерации.
       Если после 3 итераций проверка не пройдена, управление передается дальше
       Имена и точные роли сильно зависят от задачи
+    input:
+    outputs:
 
   - name: "Overall solution checker"
     mandatory: required
@@ -68,11 +83,16 @@ agents:
     description: |
       Более критическая роль нежели Quality checker
       От решения сильно зависит стоит ли принимать решение. Если решение не прошло, то надо декомпозировать задачу и вызвать дополнительных исполнителей
+    input:
+    outputs:
 
   - name: "Fail analyzer"
-    mandatory: optional
+    mandatory: conditional
+    condition: "Если решение провалило финальную проверку, цикл качества исчерпан или причина провала неочевидна."
     importance: 1
     description: "Имя все говорит"
+    input:
+    outputs:
 
   - name: "Task Decomposer"
     mandatory: conditional
