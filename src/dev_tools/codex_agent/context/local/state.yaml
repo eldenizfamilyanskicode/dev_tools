@@ -1,0 +1,11 @@
+flow:
+  id: flow_2026_06_08_001
+  active_agents:
+  - researcher
+  iteration: 1
+agents:
+  researcher:
+    status: active
+    last_event_id: evt_003
+    artifacts:
+      - research_1x.md
