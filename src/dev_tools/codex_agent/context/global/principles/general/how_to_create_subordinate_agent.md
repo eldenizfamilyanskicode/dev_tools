@@ -1,1 +1,1 @@
-- Создавай нижестоящих агентов через codex_app.fork_thread с environment: {"type":"same-directory"}.
+Создавай агентов через codex_app.create_thread. Так контекст будет less polluted
