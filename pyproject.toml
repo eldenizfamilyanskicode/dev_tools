@@ -24,6 +24,16 @@ dev = [
 [project.scripts]
 dev-tools = "dev_tools.cli.main:main"
 
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.ruff]
 line-length = 88
 target-version = "py314"
@@ -46,6 +56,7 @@ explicit_package_bases = true
 [[tool.mypy.overrides]]
 module = [
     "app.containers.*",
+    "dev_tools.cli.containers.*",
     "src.containers.*",
 ]
 disable_error_code = ["assignment"]
