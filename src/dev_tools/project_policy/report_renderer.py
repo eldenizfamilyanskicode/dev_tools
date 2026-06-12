@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
+
+from base_pydantic_schemas import ImmutableDTO
 
 from dev_tools.project_bootstrap.models import (
     BootstrapFileAction,
@@ -21,14 +22,12 @@ from dev_tools.project_policy.operation_status_resolver import (
 )
 
 
-@dataclass(frozen=True)
-class ProjectPolicyPlanEntry:
+class ProjectPolicyPlanEntry(ImmutableDTO):
     manifest: ProjectPolicyManifest
     plan: ProjectBootstrapPlan
 
 
-@dataclass(frozen=True)
-class ProjectPolicyApplyResult:
+class ProjectPolicyApplyResult(ImmutableDTO):
     manifest: ProjectPolicyManifest
     manifest_file_path: Path
     plan: ProjectBootstrapPlan

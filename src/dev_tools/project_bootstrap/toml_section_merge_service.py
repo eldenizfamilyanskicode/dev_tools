@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import tomllib
-from dataclasses import dataclass
+
+from base_pydantic_schemas import ImmutableDTO
 
 from dev_tools.project_bootstrap.toml_section_parser import (
     TomlKeyBlock,
@@ -10,8 +11,7 @@ from dev_tools.project_bootstrap.toml_section_parser import (
 )
 
 
-@dataclass(frozen=True)
-class TomlMergeResult:
+class TomlMergeResult(ImmutableDTO):
     content: str
     applied_paths: tuple[str, ...]
     preserved_paths: tuple[str, ...]
@@ -153,9 +153,7 @@ class TomlSectionMergeService:
             current_content
         )
         managed_sections: tuple[tuple[str, str], ...]
-        managed_sections = self.toml_section_parser.collect_sections(
-            managed_content
-        )
+        managed_sections = self.toml_section_parser.collect_sections(managed_content)
         missing_section_names: list[str] = []
 
         for section_name, section_content in managed_sections:
@@ -182,9 +180,7 @@ class TomlSectionMergeService:
             current_content
         )
         managed_sections: tuple[tuple[str, str], ...]
-        managed_sections = self.toml_section_parser.collect_sections(
-            managed_content
-        )
+        managed_sections = self.toml_section_parser.collect_sections(managed_content)
         preserved_section_names: list[str] = []
 
         for section_name, section_content in managed_sections:

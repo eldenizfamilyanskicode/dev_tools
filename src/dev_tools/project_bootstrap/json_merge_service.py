@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
 from typing import cast
+
+from base_pydantic_schemas import ImmutableDTO, MutableDTO
+from pydantic import Field
 
 type JsonPrimitive = str | int | float | bool | None
 type JsonValue = JsonPrimitive | JsonArray | JsonObject
@@ -10,19 +12,17 @@ type JsonArray = list[JsonValue]
 type JsonObject = dict[str, JsonValue]
 
 
-@dataclass(frozen=True)
-class JsonMergeResult:
+class JsonMergeResult(ImmutableDTO):
     content: str
     applied_paths: tuple[str, ...]
     preserved_paths: tuple[str, ...]
     conflict_paths: tuple[str, ...]
 
 
-@dataclass
-class JsonMergeAccumulator:
-    applied_paths: list[str] = field(default_factory=list)
-    preserved_paths: list[str] = field(default_factory=list)
-    conflict_paths: list[str] = field(default_factory=list)
+class JsonMergeAccumulator(MutableDTO):
+    applied_paths: list[str] = Field(default_factory=list)  # pyright: ignore[reportUnknownVariableType]
+    preserved_paths: list[str] = Field(default_factory=list)  # pyright: ignore[reportUnknownVariableType]
+    conflict_paths: list[str] = Field(default_factory=list)  # pyright: ignore[reportUnknownVariableType]
 
 
 class JsonMergeService:

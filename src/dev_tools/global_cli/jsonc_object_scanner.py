@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+
+from base_pydantic_schemas import ImmutableDTO
 
 from dev_tools.global_cli.exceptions import GlobalCliSetupError
 
 
-@dataclass(frozen=True)
-class JsoncObjectSpan:
+class JsoncObjectSpan(ImmutableDTO):
     open_brace_index: int
     close_brace_index: int
 
 
-@dataclass(frozen=True)
-class JsoncObjectMember:
+class JsoncObjectMember(ImmutableDTO):
     key: str
     key_start_index: int
     key_end_index: int

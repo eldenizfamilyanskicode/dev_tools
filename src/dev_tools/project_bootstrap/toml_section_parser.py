@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from base_pydantic_schemas import ImmutableDTO
 
 
-@dataclass(frozen=True)
-class TomlSection:
+class TomlSection(ImmutableDTO):
     name: str
     header: str
     is_array_table: bool
@@ -13,8 +12,7 @@ class TomlSection:
     lines: tuple[str, ...]
 
 
-@dataclass(frozen=True)
-class TomlKeyBlock:
+class TomlKeyBlock(ImmutableDTO):
     key: str
     lines: tuple[str, ...]
 
@@ -58,9 +56,7 @@ class TomlSectionParser:
                         is_array_table=active_section_is_array_table,
                         start_line_index=active_section_start_line_index,
                         end_line_index=line_index,
-                        lines=tuple(
-                            lines[active_section_start_line_index:line_index]
-                        ),
+                        lines=tuple(lines[active_section_start_line_index:line_index]),
                     )
                 )
 
