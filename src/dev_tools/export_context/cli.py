@@ -248,8 +248,8 @@ class ExportContextCliContribution:
   dev-tools run --project-root /absolute/project/path y n
 
 argument values:
-  y, yes, true, 1, да, д       include section
-  n, no, false, 0, нет, н      skip section
+  y, yes, true, 1              include section
+  n, no, false, 0              skip section
 """
 
     def build_export_context_examples(self) -> str:

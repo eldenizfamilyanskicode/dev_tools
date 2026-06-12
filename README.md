@@ -54,14 +54,14 @@ dev-tools menu
 The root CLI owns only global wiring and the `menu` command. Every project
 operation is contributed by a domain through a `CliContribution`.
 
-| Domain | Contribution class | Commands | Menu items |
-| --- | --- | --- | --- |
-| `project_init` | `ProjectInitCliContribution` | `init` | Initialize project context |
-| `project_policy` | `ProjectPolicyCliContribution` | `projects`, `policies` | |
-| `tree_generation` | `TreeGenerationCliContribution` | `tree` | Show project tree |
-| `include_generation` | `IncludeGenerationCliContribution` | `update-include-files` | Update include files catalog |
-| `export_context` | `ExportContextCliContribution` | `run`, `export-context` | Run export with about + tree; Run export without about/tree; Run export with tree only; Run export with about only |
-| `global_cli` | `GlobalCliCliContribution` | `global-cli` | |
+| Domain               | Contribution class                 | Commands                | Menu items                                                                                                         |
+| -------------------- | ---------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `project_init`       | `ProjectInitCliContribution`       | `init`                  | Initialize project context                                                                                         |
+| `project_policy`     | `ProjectPolicyCliContribution`     | `projects`, `policies`  |                                                                                                                    |
+| `tree_generation`    | `TreeGenerationCliContribution`    | `tree`                  | Show project tree                                                                                                  |
+| `include_generation` | `IncludeGenerationCliContribution` | `update-include-files`  | Update include files catalog                                                                                       |
+| `export_context`     | `ExportContextCliContribution`     | `run`, `export-context` | Run export with about + tree; Run export without about/tree; Run export with tree only; Run export with about only |
+| `global_cli`         | `GlobalCliCliContribution`         | `global-cli`            |                                                                                                                    |
 
 ## Common commands
 

@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from dev_tools.tree_generation.constants import (
+    TREE_CHILD_PREFIX,
+    TREE_ENTRY_CONNECTOR,
+    TREE_LAST_ENTRY_CONNECTOR,
+    TREE_LAST_PREFIX,
+)
 from dev_tools.typings.collections import DirectoryNames, FileExtensions, FileNames
 from dev_tools.typings.strings import ProjectName
 
@@ -49,12 +55,12 @@ class DirectoryTreeGenerator:
         for entry_index in range(visible_entry_count):
             directory_entry: Path = visible_entries[entry_index]
             is_last_entry: bool = entry_index == visible_entry_count - 1
-            entry_connector: str = "├── "
-            next_line_prefix: str = line_prefix + "│   "
+            entry_connector: str = TREE_ENTRY_CONNECTOR
+            next_line_prefix: str = line_prefix + TREE_CHILD_PREFIX
 
             if is_last_entry:
-                entry_connector = "└── "
-                next_line_prefix = line_prefix + "    "
+                entry_connector = TREE_LAST_ENTRY_CONNECTOR
+                next_line_prefix = line_prefix + TREE_LAST_PREFIX
 
             if directory_entry.is_dir():
                 lines.append(f"{line_prefix}{entry_connector}{directory_entry.name}/")
