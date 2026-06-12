@@ -63,4 +63,3 @@ class ManagedBlockService:
             updated_content = updated_content + "\n"
 
         return updated_content + managed_content
-

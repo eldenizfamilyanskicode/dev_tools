@@ -22,7 +22,14 @@ from dev_tools.project_bootstrap.models import (
     StrictnessLevel,
     ToolName,
 )
+from dev_tools.project_bootstrap.pyproject_operation_builder import (
+    PyprojectOperationBuilder,
+)
+from dev_tools.project_bootstrap.template_content_builder import TemplateContentBuilder
 from dev_tools.project_bootstrap.template_plan_builder import TemplatePlanBuilder
+from dev_tools.project_bootstrap.toml_section_merge_service import (
+    TomlSectionMergeService,
+)
 from dev_tools.project_bootstrap.vscode_user_settings_path_resolver import (
     VsCodeUserSettingsPathResolver,
 )
@@ -60,6 +67,11 @@ def build_project_bootstrap_service(
     template_plan_builder: TemplatePlanBuilder = TemplatePlanBuilder(
         managed_block_service=ManagedBlockService(),
         json_merge_service=json_merge_service,
+        template_content_builder=TemplateContentBuilder(),
+        pyproject_operation_builder=PyprojectOperationBuilder(
+            toml_section_merge_service=TomlSectionMergeService(),
+            bootstrap_file_writer=bootstrap_file_writer,
+        ),
         bootstrap_file_writer=bootstrap_file_writer,
         bootstrap_addons=(vscode_user_files_exclude_addon,),
     )
@@ -294,15 +306,27 @@ def test_vscode_user_settings_invalid_json_is_not_overwritten(
     assert vscode_user_settings_file_path.read_text(encoding="utf-8") == "{"
 
 
-def test_existing_pyproject_is_skipped_by_default(tmp_path: Path) -> None:
+def test_existing_pyproject_receives_missing_managed_sections(tmp_path: Path) -> None:
     pyproject_file_path: Path = tmp_path / "pyproject.toml"
     pyproject_file_path.write_text('[project]\nname = "custom"\n', encoding="utf-8")
 
     bootstrap_project(tmp_path)
 
-    assert pyproject_file_path.read_text(encoding="utf-8") == (
-        '[project]\nname = "custom"\n'
-    )
+    pyproject_content: str = pyproject_file_path.read_text(encoding="utf-8")
+
+    assert '[project]\nname = "custom"\n' in pyproject_content
+    assert pyproject_content.count("[project]") == 1
+    assert "[tool.uv]" in pyproject_content
+    assert "[tool.ruff]" in pyproject_content
+
+
+def test_invalid_pyproject_is_not_overwritten_by_default(tmp_path: Path) -> None:
+    pyproject_file_path: Path = tmp_path / "pyproject.toml"
+    pyproject_file_path.write_text("[project", encoding="utf-8")
+
+    bootstrap_project(tmp_path)
+
+    assert pyproject_file_path.read_text(encoding="utf-8") == "[project"
 
 
 def test_force_overwrites_force_managed_files(tmp_path: Path) -> None:

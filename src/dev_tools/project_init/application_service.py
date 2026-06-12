@@ -14,6 +14,7 @@ from dev_tools.project_bootstrap.models import (
 from dev_tools.project_context.project_root_resolver import ProjectRootResolver
 from dev_tools.project_init.git_exclude import GitExcludeService
 from dev_tools.project_init.template_writer import ProjectContextTemplateWriter
+from dev_tools.project_policy.application_service import ProjectPolicyService
 from dev_tools.shared.file_system import FileSystem
 
 
@@ -26,6 +27,7 @@ class ProjectInitService:
         git_exclude_service: GitExcludeService,
         include_file_update_service: IncludeFileUpdateService,
         project_bootstrap_service: ProjectBootstrapService,
+        project_policy_service: ProjectPolicyService,
     ) -> None:
         self.project_root_resolver = project_root_resolver
         self.file_system = file_system
@@ -33,6 +35,7 @@ class ProjectInitService:
         self.git_exclude_service = git_exclude_service
         self.include_file_update_service = include_file_update_service
         self.project_bootstrap_service = project_bootstrap_service
+        self.project_policy_service = project_policy_service
 
     def initialize_project(
         self,
@@ -79,9 +82,15 @@ class ProjectInitService:
             force=force,
             dry_run=False,
         )
-        self.project_bootstrap_service.bootstrap_project(bootstrap_request)
+        bootstrap_plan: ProjectBootstrapPlan = (
+            self.project_bootstrap_service.bootstrap_project(bootstrap_request)
+        )
         self.include_file_update_service.update_include_file(
             requested_project_root=project_root,
+        )
+        self.project_policy_service.record_initialized_project(
+            request=bootstrap_request,
+            plan=bootstrap_plan,
         )
 
         return project_root

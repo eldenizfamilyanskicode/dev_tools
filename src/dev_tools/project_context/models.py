@@ -57,6 +57,7 @@ class ExcludeSettings(ImmutableDTO):
     files: FileNames
     extensions: FileExtensions
 
+
 class DevToolsContext(ImmutableDTO):
     project: ProjectSettings
     about: AboutSettings

@@ -4,6 +4,8 @@ from pathlib import Path
 
 from dev_tools.project_bootstrap.bootstrap_file_writer import BootstrapFileWriter
 from dev_tools.project_bootstrap.constants import (
+    POLICY_VSCODE_USER_FILES_EXCLUDE_ID,
+    POLICY_VSCODE_USER_FILES_EXCLUDE_REVISION,
     VSCODE_FILES_EXCLUDE_SETTING_NAME,
     VSCODE_GLOBAL_FILES_EXCLUDE_PATTERNS,
     VSCODE_SETTINGS_FILE_NAME,
@@ -62,6 +64,9 @@ class VsCodeUserFilesExcludeAddon:
                     reason="existing JSON is not safe to merge",
                     target_file_path=settings_file_path,
                     display_path=VSCODE_USER_SETTINGS_DISPLAY_PATH,
+                    policy_id=POLICY_VSCODE_USER_FILES_EXCLUDE_ID,
+                    policy_revision=POLICY_VSCODE_USER_FILES_EXCLUDE_REVISION,
+                    merge_strategy="json_merge",
                 )
             )
             return
@@ -74,6 +79,9 @@ class VsCodeUserFilesExcludeAddon:
             create_only=False,
             target_file_path=settings_file_path,
             display_path=VSCODE_USER_SETTINGS_DISPLAY_PATH,
+            policy_id=POLICY_VSCODE_USER_FILES_EXCLUDE_ID,
+            policy_revision=POLICY_VSCODE_USER_FILES_EXCLUDE_REVISION,
+            merge_strategy="json_merge",
         )
         operations.append(operation)
 

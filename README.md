@@ -12,12 +12,18 @@ Each project keeps only local context in `.dev_tools/`:
 - `.dev_tools/context.toml`
 - `.dev_tools/include.toml`
 - `.dev_tools/exclude.toml`
+- `.dev_tools/policy_manifest.toml`
 - `.dev_tools/about_current_project.md`
 - `.dev_tools/output/`
 
 `dev-tools init` automatically adds `.dev_tools/` to `.git/info/exclude`.
 It also applies high-level project bootstrap defaults for editor settings,
 Python/TypeScript tooling, and local ignore policy.
+
+`dev-tools init` records the concrete policies that were applied in the local
+project policy manifest and registers the project path in a machine-local global
+index. The index is intentionally local-only and exists so policy updates can be
+planned or applied centrally without guessing which projects were initialized.
 
 ## Discover available tools
 
@@ -30,6 +36,8 @@ dev-tools tree --help
 dev-tools update-include-files --help
 dev-tools run --help
 dev-tools export-context --help
+dev-tools projects --help
+dev-tools policies --help
 ```
 
 Use the interactive menu to see the workflow-oriented actions contributed by
@@ -47,6 +55,7 @@ operation is contributed by a domain through a `CliContribution`.
 | Domain | Contribution class | Commands | Menu items |
 | --- | --- | --- | --- |
 | `project_init` | `ProjectInitCliContribution` | `init` | Initialize project context |
+| `project_policy` | `ProjectPolicyCliContribution` | `projects`, `policies` | |
 | `tree_generation` | `TreeGenerationCliContribution` | `tree` | Show project tree |
 | `include_generation` | `IncludeGenerationCliContribution` | `update-include-files` | Update include files catalog |
 | `export_context` | `ExportContextCliContribution` | `run`, `export-context` | Run export with about + tree; Run export without about/tree; Run export with tree only; Run export with about only |
@@ -65,6 +74,11 @@ dev-tools run n n
 dev-tools run --include-tree --include-about
 dev-tools update-include-files
 dev-tools tree --print
+dev-tools projects list
+dev-tools projects doctor
+dev-tools policies status
+dev-tools policies plan --all
+dev-tools policies apply --project-root /absolute/project/path
 ```
 
 ## CLI extension model
@@ -133,7 +147,7 @@ The bootstrap writes policy, not environments. It never creates or stores a
 `.venv`; it adds `.venv/` and common cache/build folders to `.gitignore`, sets
 the VS Code interpreter path, updates global VS Code user `files.exclude` for
 common Python cache folders, and creates uv-oriented Python project defaults when
-`pyproject.toml` is missing.
+`pyproject.toml` is missing or can receive missing generated sections safely.
 
 Merge policy is intentionally conservative:
 
@@ -141,8 +155,11 @@ Merge policy is intentionally conservative:
 - `.gitignore` uses a replaceable `dev-tools` managed block;
 - `.vscode/settings.json`, `.vscode/extensions.json`, and `pyrightconfig.json`
   are JSON-merged while preserving unknown user keys;
-- `pyproject.toml`, `package.json`, `tsconfig.json`, and
-  `prettier.config.mjs` are created only when missing, unless `--force` is used.
+- `pyproject.toml` gets only missing generated TOML sections appended; existing
+  sections are not rewritten;
+- `package.json` and `tsconfig.json` are JSON-merged while preserving unknown
+  user keys;
+- `prettier.config.mjs` is created only when missing, unless `--force` is used.
 
 Use `--dry-run` to print the plan without writing files:
 
@@ -152,6 +169,35 @@ dev-tools init --dry-run
 
 Use `--force` when you intentionally want generated target files such as
 `pyproject.toml` or `package.json` to be overwritten.
+
+## Project policy tracking
+
+Initialization writes a local machine-only policy manifest:
+
+```bash
+.dev_tools/policy_manifest.toml
+```
+
+The manifest records the init settings, the `dev-tools` version at first init,
+and each concrete policy id/revision with its latest status. This is the source
+of truth for what was applied to the project.
+
+The global project index lives under the user-local dev-tools state directory
+and stores only project paths plus manifest locations. Use:
+
+```bash
+dev-tools projects list
+dev-tools projects doctor
+```
+
+Policy updates are explicit. `plan` is read-only; `apply` mutates files and then
+updates the manifest:
+
+```bash
+dev-tools policies status
+dev-tools policies plan --all
+dev-tools policies apply --all
+```
 
 ## Workflow
 

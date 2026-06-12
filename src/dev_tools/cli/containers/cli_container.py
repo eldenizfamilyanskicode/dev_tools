@@ -15,18 +15,22 @@ from dev_tools.cli.containers.include_generation_container import (
     IncludeGenerationContainer,
 )
 from dev_tools.cli.containers.project_init_container import ProjectInitContainer
+from dev_tools.cli.containers.project_policy_container import ProjectPolicyContainer
 from dev_tools.cli.containers.tree_generation_container import TreeGenerationContainer
 from dev_tools.cli.menu_runner import InteractiveMenuRunner
 from dev_tools.cli.shared_arguments import CliArgumentReader, CliSharedArgumentRegistrar
 from dev_tools.export_context.cli import ExportContextCliContribution
 from dev_tools.include_generation.cli import IncludeGenerationCliContribution
 from dev_tools.project_init.cli import ProjectInitCliContribution
+from dev_tools.project_policy.cli import ProjectPolicyCliContribution
 from dev_tools.tree_generation.cli import TreeGenerationCliContribution
 
 
 class CliContainer(containers.DeclarativeContainer):
     project_init: ProjectInitContainer
     project_init = DependenciesContainer()  # pyright: ignore[reportAssignmentType]
+    project_policy: ProjectPolicyContainer
+    project_policy = DependenciesContainer()  # pyright: ignore[reportAssignmentType]
     include_generation: IncludeGenerationContainer
     include_generation = DependenciesContainer()  # pyright: ignore[reportAssignmentType]
     tree_generation: TreeGenerationContainer
@@ -51,6 +55,13 @@ class CliContainer(containers.DeclarativeContainer):
         include_file_update_service=include_generation.include_file_update_service,
     )
 
+    project_policy_cli_contribution = Factory(
+        ProjectPolicyCliContribution,
+        cli_argument_reader=cli_argument_reader,
+        cli_shared_argument_registrar=cli_shared_argument_registrar,
+        project_policy_service=project_policy.project_policy_service,
+    )
+
     tree_generation_cli_contribution = Factory(
         TreeGenerationCliContribution,
         cli_argument_reader=cli_argument_reader,
@@ -67,6 +78,7 @@ class CliContainer(containers.DeclarativeContainer):
 
     cli_contributions = List(
         project_init_cli_contribution,
+        project_policy_cli_contribution,
         tree_generation_cli_contribution,
         include_generation_cli_contribution,
         export_context_cli_contribution,

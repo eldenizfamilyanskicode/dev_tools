@@ -25,10 +25,20 @@ class RecordingProjectBootstrapService:
 
     def bootstrap_project(self, request: Any) -> Any:
         self.requests.append(request)
-        return None
+        return type("RecordedPlan", (), {"operations": ()})()
 
     def render_plan(self, plan: Any) -> str:
         return ""
+
+
+class RecordingProjectPolicyService:
+    def __init__(self) -> None:
+        self.requests: list[Any] = []
+        self.plans: list[Any] = []
+
+    def record_initialized_project(self, request: Any, plan: Any) -> None:
+        self.requests.append(request)
+        self.plans.append(plan)
 
 
 def test_old_dev_tools_init_behavior_still_works(tmp_path: Path) -> None:
@@ -42,6 +52,9 @@ def test_old_dev_tools_init_behavior_still_works(tmp_path: Path) -> None:
     project_bootstrap_service: RecordingProjectBootstrapService = (
         RecordingProjectBootstrapService()
     )
+    project_policy_service: RecordingProjectPolicyService = (
+        RecordingProjectPolicyService()
+    )
     project_init_service: ProjectInitService = ProjectInitService(
         project_root_resolver=ProjectRootResolver(),
         file_system=file_system,
@@ -49,6 +62,7 @@ def test_old_dev_tools_init_behavior_still_works(tmp_path: Path) -> None:
         git_exclude_service=GitExcludeService(file_system),
         include_file_update_service=include_file_update_service,  # type: ignore[arg-type]
         project_bootstrap_service=project_bootstrap_service,  # type: ignore[arg-type]
+        project_policy_service=project_policy_service,  # type: ignore[arg-type]
     )
 
     initialized_project_root: Path = project_init_service.initialize_project(
@@ -65,6 +79,7 @@ def test_old_dev_tools_init_behavior_still_works(tmp_path: Path) -> None:
     assert (tmp_path / ".dev_tools" / "output").is_dir()
     assert include_file_update_service.requested_project_root == tmp_path
     assert len(project_bootstrap_service.requests) == 1
+    assert len(project_policy_service.requests) == 1
     assert ".dev_tools/" in (git_info_directory / "exclude").read_text(encoding="utf-8")
 
 

@@ -11,7 +11,14 @@ from dev_tools.project_bootstrap.application_service import ProjectBootstrapServ
 from dev_tools.project_bootstrap.bootstrap_file_writer import BootstrapFileWriter
 from dev_tools.project_bootstrap.json_merge_service import JsonMergeService
 from dev_tools.project_bootstrap.managed_block_service import ManagedBlockService
+from dev_tools.project_bootstrap.pyproject_operation_builder import (
+    PyprojectOperationBuilder,
+)
+from dev_tools.project_bootstrap.template_content_builder import TemplateContentBuilder
 from dev_tools.project_bootstrap.template_plan_builder import TemplatePlanBuilder
+from dev_tools.project_bootstrap.toml_section_merge_service import (
+    TomlSectionMergeService,
+)
 from dev_tools.project_bootstrap.vscode_user_settings_path_resolver import (
     DefaultVsCodeUserSettingsPathResolver,
 )
@@ -22,6 +29,8 @@ class ProjectBootstrapContainer(containers.DeclarativeContainer):
 
     managed_block_service = Factory(ManagedBlockService)
     json_merge_service = Factory(JsonMergeService)
+    toml_section_merge_service = Factory(TomlSectionMergeService)
+    template_content_builder = Factory(TemplateContentBuilder)
     vscode_user_settings_path_resolver = Factory(DefaultVsCodeUserSettingsPathResolver)
 
     bootstrap_file_writer = Factory(
@@ -36,6 +45,12 @@ class ProjectBootstrapContainer(containers.DeclarativeContainer):
         vscode_user_settings_path_resolver=vscode_user_settings_path_resolver,
     )
 
+    pyproject_operation_builder = Factory(
+        PyprojectOperationBuilder,
+        toml_section_merge_service=toml_section_merge_service,
+        bootstrap_file_writer=bootstrap_file_writer,
+    )
+
     bootstrap_addons = List(
         vscode_user_files_exclude_addon,
     )
@@ -44,6 +59,8 @@ class ProjectBootstrapContainer(containers.DeclarativeContainer):
         TemplatePlanBuilder,
         managed_block_service=managed_block_service,
         json_merge_service=json_merge_service,
+        template_content_builder=template_content_builder,
+        pyproject_operation_builder=pyproject_operation_builder,
         bootstrap_file_writer=bootstrap_file_writer,
         bootstrap_addons=bootstrap_addons,
     )

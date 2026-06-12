@@ -23,6 +23,9 @@ class BootstrapFileWriter:
         create_only: bool = False,
         target_file_path: Path | None = None,
         display_path: str | None = None,
+        policy_id: str | None = None,
+        policy_revision: int | None = None,
+        merge_strategy: str = "whole_file",
     ) -> BootstrapFileOperation:
         resolved_target_file_path: Path = project_root_path / relative_file_path
 
@@ -39,6 +42,9 @@ class BootstrapFileWriter:
                 content=content,
                 target_file_path=target_file_path,
                 display_path=display_path,
+                policy_id=policy_id,
+                policy_revision=policy_revision,
+                merge_strategy=merge_strategy,
             )
 
         current_content: str = resolved_target_file_path.read_text(encoding="utf-8")
@@ -46,10 +52,13 @@ class BootstrapFileWriter:
             return BootstrapFileOperation(
                 relative_file_path=relative_file_path,
                 action=BootstrapFileAction.SKIP,
-                content=None,
+                content=content,
                 reason="already up to date",
                 target_file_path=target_file_path,
                 display_path=display_path,
+                policy_id=policy_id,
+                policy_revision=policy_revision,
+                merge_strategy=merge_strategy,
             )
 
         if create_only and not force:
@@ -60,6 +69,9 @@ class BootstrapFileWriter:
                 reason="exists",
                 target_file_path=target_file_path,
                 display_path=display_path,
+                policy_id=policy_id,
+                policy_revision=policy_revision,
+                merge_strategy=merge_strategy,
             )
 
         return BootstrapFileOperation(
@@ -68,6 +80,9 @@ class BootstrapFileWriter:
             content=content,
             target_file_path=target_file_path,
             display_path=display_path,
+            policy_id=policy_id,
+            policy_revision=policy_revision,
+            merge_strategy=merge_strategy,
         )
 
     def apply_plan(self, project_root_path: Path, plan: ProjectBootstrapPlan) -> None:

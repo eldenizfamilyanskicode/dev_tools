@@ -22,9 +22,7 @@ class ProjectInitCliContribution:
         project_init_service: ProjectInitService,
     ) -> None:
         self.cli_argument_reader: CliArgumentReader = cli_argument_reader
-        self.cli_shared_argument_registrar = (
-            cli_shared_argument_registrar
-        )
+        self.cli_shared_argument_registrar = cli_shared_argument_registrar
         self.project_init_service: ProjectInitService = project_init_service
 
     def register_commands(
@@ -100,10 +98,8 @@ class ProjectInitCliContribution:
 
     def handle_init_command(self, arguments: argparse.Namespace) -> int:
         requested_project_root: Path | None
-        requested_project_root = (
-            self.cli_argument_reader.resolve_optional_project_root(
-                arguments=arguments,
-            )
+        requested_project_root = self.cli_argument_reader.resolve_optional_project_root(
+            arguments=arguments,
         )
         force: bool = self.cli_argument_reader.get_bool_argument(
             arguments=arguments,
@@ -219,7 +215,7 @@ class ProjectInitCliContribution:
 
         raw_groups: list[str] = []
 
-        for argument_item in argument_value: # pyright: ignore[reportUnknownVariableType]
+        for argument_item in argument_value:  # pyright: ignore[reportUnknownVariableType]
             if not isinstance(argument_item, str):
                 raise TypeError("Expected each `toolset` value to be a string.")
 
@@ -256,7 +252,6 @@ class ProjectInitCliContribution:
             return (ToolName.ALL,)
 
         return tuple(tool_names)
-
 
     def build_application_type_choices(self) -> tuple[str, ...]:
         choices: list[str] = []

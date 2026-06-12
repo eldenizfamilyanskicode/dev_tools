@@ -5,6 +5,22 @@ from importlib.resources import files
 from pathlib import Path
 
 from dev_tools.project_bootstrap.bootstrap_file_writer import BootstrapFileWriter
+from dev_tools.project_bootstrap.constants import (
+    POLICY_GITIGNORE_MANAGED_BLOCK_ID,
+    POLICY_GITIGNORE_MANAGED_BLOCK_REVISION,
+    POLICY_PACKAGE_JSON_ID,
+    POLICY_PACKAGE_JSON_REVISION,
+    POLICY_PRETTIER_CONFIG_ID,
+    POLICY_PRETTIER_CONFIG_REVISION,
+    POLICY_PYRIGHT_CONFIG_ID,
+    POLICY_PYRIGHT_CONFIG_REVISION,
+    POLICY_TSCONFIG_ID,
+    POLICY_TSCONFIG_REVISION,
+    POLICY_VSCODE_EXTENSIONS_ID,
+    POLICY_VSCODE_EXTENSIONS_REVISION,
+    POLICY_VSCODE_WORKSPACE_SETTINGS_ID,
+    POLICY_VSCODE_WORKSPACE_SETTINGS_REVISION,
+)
 from dev_tools.project_bootstrap.json_merge_service import (
     JsonArray,
     JsonMergeService,
@@ -18,9 +34,12 @@ from dev_tools.project_bootstrap.models import (
     BootstrapFileOperation,
     ProjectBootstrapPlan,
     ProjectBootstrapRequest,
-    StrictnessLevel,
     ToolName,
 )
+from dev_tools.project_bootstrap.pyproject_operation_builder import (
+    PyprojectOperationBuilder,
+)
+from dev_tools.project_bootstrap.template_content_builder import TemplateContentBuilder
 from dev_tools.templates.constants import (
     DEV_TOOLS_TEMPLATE_PACKAGE,
     GITIGNORE_MANAGED_BLOCK_TEMPLATE_FILE_NAME,
@@ -32,11 +51,15 @@ class TemplatePlanBuilder:
         self,
         managed_block_service: ManagedBlockService,
         json_merge_service: JsonMergeService,
+        template_content_builder: TemplateContentBuilder,
+        pyproject_operation_builder: PyprojectOperationBuilder,
         bootstrap_file_writer: BootstrapFileWriter,
         bootstrap_addons: Sequence[BootstrapAddon] | None = None,
     ) -> None:
         self.managed_block_service = managed_block_service
         self.json_merge_service = json_merge_service
+        self.template_content_builder = template_content_builder
+        self.pyproject_operation_builder = pyproject_operation_builder
         self.bootstrap_file_writer = bootstrap_file_writer
         self.bootstrap_addons = tuple(bootstrap_addons or ())
 
@@ -73,40 +96,54 @@ class TemplatePlanBuilder:
                     operations=operations,
                     project_root_path=project_root_path,
                     relative_file_path=Path("pyrightconfig.json"),
-                    managed_data=self.build_pyright_config(request.strictness_level),
+                    managed_data=self.template_content_builder.build_pyright_config(
+                        request.strictness_level
+                    ),
                     force=request.force,
                     create_only=False,
+                    policy_id=POLICY_PYRIGHT_CONFIG_ID,
+                    policy_revision=POLICY_PYRIGHT_CONFIG_REVISION,
+                    merge_strategy="json_merge",
                 )
 
-            self.add_text_operation(
-                operations=operations,
-                project_root_path=project_root_path,
-                relative_file_path=Path("pyproject.toml"),
-                content=self.build_pyproject_content(
+            operations.append(
+                self.pyproject_operation_builder.build_operation(
                     project_root_path=project_root_path,
-                    strictness_level=request.strictness_level,
-                    expanded_tool_names=expanded_tool_names,
-                ),
-                force=request.force,
-                create_only=True,
+                    content=self.template_content_builder.build_pyproject_content(
+                        project_root_path=project_root_path,
+                        strictness_level=request.strictness_level,
+                        expanded_tool_names=expanded_tool_names,
+                    ),
+                    force=request.force,
+                )
             )
 
         if self.includes_typescript(request.application_type):
-            self.add_text_operation(
+            self.add_json_operation(
                 operations=operations,
                 project_root_path=project_root_path,
                 relative_file_path=Path("package.json"),
-                content=self.build_package_json_content(project_root_path),
+                managed_data=self.template_content_builder.build_package_json_data(
+                    project_root_path
+                ),
                 force=request.force,
-                create_only=True,
+                create_only=False,
+                policy_id=POLICY_PACKAGE_JSON_ID,
+                policy_revision=POLICY_PACKAGE_JSON_REVISION,
+                merge_strategy="json_merge",
             )
-            self.add_text_operation(
+            self.add_json_operation(
                 operations=operations,
                 project_root_path=project_root_path,
                 relative_file_path=Path("tsconfig.json"),
-                content=self.build_tsconfig_content(request.strictness_level),
+                managed_data=self.template_content_builder.build_tsconfig_data(
+                    request.strictness_level
+                ),
                 force=request.force,
-                create_only=True,
+                create_only=False,
+                policy_id=POLICY_TSCONFIG_ID,
+                policy_revision=POLICY_TSCONFIG_REVISION,
+                merge_strategy="json_merge",
             )
 
             if self.has_tool(expanded_tool_names, ToolName.PRETTIER):
@@ -114,9 +151,12 @@ class TemplatePlanBuilder:
                     operations=operations,
                     project_root_path=project_root_path,
                     relative_file_path=Path("prettier.config.mjs"),
-                    content=self.build_prettier_config_content(),
+                    content=self.template_content_builder.build_prettier_config_content(),
                     force=request.force,
                     create_only=True,
+                    policy_id=POLICY_PRETTIER_CONFIG_ID,
+                    policy_revision=POLICY_PRETTIER_CONFIG_REVISION,
+                    merge_strategy="create_only_text",
                 )
 
         return ProjectBootstrapPlan(
@@ -191,6 +231,9 @@ class TemplatePlanBuilder:
             content=updated_content,
             force=request.force,
             create_only=False,
+            policy_id=POLICY_GITIGNORE_MANAGED_BLOCK_ID,
+            policy_revision=POLICY_GITIGNORE_MANAGED_BLOCK_REVISION,
+            merge_strategy="managed_block",
         )
 
     def read_gitignore_managed_block_template(self) -> tuple[str, ...]:
@@ -211,11 +254,15 @@ class TemplatePlanBuilder:
 
         if self.includes_python(request.application_type):
             managed_data["python.defaultInterpreterPath"] = (
-                self.choose_python_interpreter_path(request.project_root_path)
+                self.template_content_builder.choose_python_interpreter_path(
+                    request.project_root_path
+                )
             )
             managed_data["python.terminal.activateEnvironment"] = True
             managed_data["python.analysis.typeCheckingMode"] = (
-                self.map_python_type_checking_mode(request.strictness_level)
+                self.template_content_builder.map_python_type_checking_mode(
+                    request.strictness_level
+                )
             )
 
             if self.has_tool(expanded_tool_names, ToolName.RUFF):
@@ -249,6 +296,9 @@ class TemplatePlanBuilder:
             managed_data=managed_data,
             force=request.force,
             create_only=False,
+            policy_id=POLICY_VSCODE_WORKSPACE_SETTINGS_ID,
+            policy_revision=POLICY_VSCODE_WORKSPACE_SETTINGS_REVISION,
+            merge_strategy="json_merge",
         )
 
     def add_vscode_extensions_operation(
@@ -282,6 +332,9 @@ class TemplatePlanBuilder:
             managed_data=managed_data,
             force=request.force,
             create_only=False,
+            policy_id=POLICY_VSCODE_EXTENSIONS_ID,
+            policy_revision=POLICY_VSCODE_EXTENSIONS_REVISION,
+            merge_strategy="json_merge",
         )
 
     def add_json_operation(
@@ -292,6 +345,9 @@ class TemplatePlanBuilder:
         managed_data: JsonObject,
         force: bool,
         create_only: bool,
+        policy_id: str | None = None,
+        policy_revision: int | None = None,
+        merge_strategy: str = "json_merge",
     ) -> None:
         target_file_path: Path = project_root_path / relative_file_path
         current_content: str = ""
@@ -312,6 +368,9 @@ class TemplatePlanBuilder:
                         action=BootstrapFileAction.SKIP,
                         content=None,
                         reason="existing JSON is not safe to merge",
+                        policy_id=policy_id,
+                        policy_revision=policy_revision,
+                        merge_strategy=merge_strategy,
                     )
                 )
                 return
@@ -325,6 +384,9 @@ class TemplatePlanBuilder:
             content=content,
             force=force,
             create_only=create_only,
+            policy_id=policy_id,
+            policy_revision=policy_revision,
+            merge_strategy=merge_strategy,
         )
 
     def add_text_operation(
@@ -335,6 +397,9 @@ class TemplatePlanBuilder:
         content: str,
         force: bool,
         create_only: bool,
+        policy_id: str | None = None,
+        policy_revision: int | None = None,
+        merge_strategy: str = "whole_file",
     ) -> None:
         operation: BootstrapFileOperation = self.bootstrap_file_writer.build_operation(
             project_root_path=project_root_path,
@@ -342,149 +407,8 @@ class TemplatePlanBuilder:
             content=content,
             force=force,
             create_only=create_only,
+            policy_id=policy_id,
+            policy_revision=policy_revision,
+            merge_strategy=merge_strategy,
         )
         operations.append(operation)
-
-    def choose_python_interpreter_path(self, project_root_path: Path) -> str:
-        windows_interpreter_path: Path = (
-            project_root_path / ".venv" / "Scripts" / "python.exe"
-        )
-        if windows_interpreter_path.exists():
-            return "${workspaceFolder}/.venv/Scripts/python.exe"
-
-        return "${workspaceFolder}/.venv/bin/python"
-
-    def build_pyright_config(self, strictness_level: StrictnessLevel) -> JsonObject:
-        return {
-            "typeCheckingMode": self.map_python_type_checking_mode(strictness_level),
-            "venvPath": ".",
-            "venv": ".venv",
-            "exclude": [
-                ".venv",
-                "venv",
-                "node_modules",
-                "**/__pycache__",
-                "dist",
-                "build",
-                ".dev_tools",
-            ],
-        }
-
-    def map_python_type_checking_mode(
-        self,
-        strictness_level: StrictnessLevel,
-    ) -> str:
-        if strictness_level == StrictnessLevel.LOW:
-            return "basic"
-
-        if strictness_level == StrictnessLevel.MEDIUM:
-            return "standard"
-
-        return "strict"
-
-    def build_pyproject_content(
-        self,
-        project_root_path: Path,
-        strictness_level: StrictnessLevel,
-        expanded_tool_names: tuple[ToolName, ...],
-    ) -> str:
-        project_name: str = project_root_path.name.replace("_", "-").lower()
-        development_dependencies: list[str] = []
-
-        if self.has_tool(expanded_tool_names, ToolName.MYPY):
-            development_dependencies.append('"mypy"')
-
-        if self.has_tool(expanded_tool_names, ToolName.RUFF):
-            development_dependencies.append('"ruff"')
-
-        development_dependencies.append('"pytest"')
-        dependencies_content: str = ",\n    ".join(development_dependencies)
-        mypy_strict_value: str = "true"
-
-        if strictness_level == StrictnessLevel.LOW:
-            mypy_strict_value = "false"
-
-        return f'''[project]
-name = "{project_name}"
-version = "0.1.0"
-description = ""
-readme = "README.md"
-requires-python = ">=3.12"
-dependencies = []
-
-[dependency-groups]
-dev = [
-    {dependencies_content},
-]
-
-[tool.uv]
-package = false
-
-[tool.ruff]
-line-length = 88
-target-version = "py312"
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
-fixable = ["ALL"]
-
-[tool.mypy]
-python_version = "3.12"
-strict = {mypy_strict_value}
-[[tool.mypy.overrides]]
-module = [
-    "app.containers.*",
-    "src.containers.*",
-]
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-'''
-
-    def build_package_json_content(self, project_root_path: Path) -> str:
-        data: JsonObject = {
-            "name": project_root_path.name.replace("_", "-").lower(),
-            "version": "0.1.0",
-            "private": True,
-            "type": "module",
-            "scripts": {
-                "typecheck": "tsc --noEmit",
-                "format": "prettier --write .",
-                "format:check": "prettier --check .",
-            },
-            "devDependencies": {
-                "prettier": "^3.5.0",
-                "typescript": "^5.8.0",
-            },
-        }
-
-        return self.json_merge_service.dump_json(data)
-
-    def build_tsconfig_content(self, strictness_level: StrictnessLevel) -> str:
-        compiler_options: JsonObject = {
-            "target": "ES2022",
-            "module": "ESNext",
-            "moduleResolution": "Bundler",
-            "strict": strictness_level != StrictnessLevel.LOW,
-            "skipLibCheck": True,
-            "noEmit": True,
-        }
-
-        if strictness_level == StrictnessLevel.HIGH:
-            compiler_options["noUncheckedIndexedAccess"] = True
-            compiler_options["exactOptionalPropertyTypes"] = True
-
-        data: JsonObject = {
-            "compilerOptions": compiler_options,
-            "include": ["src"],
-        }
-
-        return self.json_merge_service.dump_json(data)
-
-    def build_prettier_config_content(self) -> str:
-        return """export default {
-  semi: true,
-  singleQuote: false,
-  trailingComma: "all",
-  printWidth: 88,
-};
-"""

@@ -13,6 +13,7 @@ from dev_tools.cli.containers.project_bootstrap_container import (
 )
 from dev_tools.cli.containers.project_context_container import ProjectContextContainer
 from dev_tools.cli.containers.project_init_container import ProjectInitContainer
+from dev_tools.cli.containers.project_policy_container import ProjectPolicyContainer
 from dev_tools.cli.containers.shared_container import SharedContainer
 from dev_tools.cli.containers.tree_generation_container import TreeGenerationContainer
 
@@ -36,12 +37,20 @@ class AppContainer(containers.DeclarativeContainer):
         shared=shared,
     )
 
+    project_policy: ProjectPolicyContainer = Container(  # pyright: ignore[reportAssignmentType]
+        ProjectPolicyContainer,
+        shared=shared,
+        project_context=project_context,
+        project_bootstrap=project_bootstrap,
+    )
+
     project_init: ProjectInitContainer = Container(  # pyright: ignore[reportAssignmentType]
         ProjectInitContainer,
         shared=shared,
         project_context=project_context,
         include_generation=include_generation,
         project_bootstrap=project_bootstrap,
+        project_policy=project_policy,
     )
 
     tree_generation: TreeGenerationContainer = Container(  # pyright: ignore[reportAssignmentType]
@@ -59,6 +68,7 @@ class AppContainer(containers.DeclarativeContainer):
     cli: CliContainer = Container(  # pyright: ignore[reportAssignmentType]
         CliContainer,
         project_init=project_init,
+        project_policy=project_policy,
         include_generation=include_generation,
         tree_generation=tree_generation,
         export_context=export_context,

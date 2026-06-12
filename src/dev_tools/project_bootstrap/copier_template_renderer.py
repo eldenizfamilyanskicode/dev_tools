@@ -9,4 +9,3 @@ class CopierTemplateRenderer:
             "Copier template rendering is available behind this port, but the "
             "current bootstrap implementation uses internal file writers."
         )
-

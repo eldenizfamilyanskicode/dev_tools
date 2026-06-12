@@ -91,9 +91,7 @@ def test_explicit_init_arguments_parse_correctly() -> None:
         recording_service.initialize_arguments["application_type"]
         == ApplicationType.TYPESCRIPT
     )
-    assert recording_service.initialize_arguments["tool_names"] == (
-        ToolName.PRETTIER,
-    )
+    assert recording_service.initialize_arguments["tool_names"] == (ToolName.PRETTIER,)
     assert (
         recording_service.initialize_arguments["strictness_level"]
         == StrictnessLevel.MEDIUM

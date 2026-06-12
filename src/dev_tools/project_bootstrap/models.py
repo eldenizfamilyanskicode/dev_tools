@@ -67,6 +67,9 @@ class BootstrapFileOperation(BaseModel):
     reason: str = ""
     target_file_path: Path | None = None
     display_path: str | None = None
+    policy_id: str | None = None
+    policy_revision: int | None = None
+    merge_strategy: str = "whole_file"
 
 
 class ProjectBootstrapPlan(BaseModel):
