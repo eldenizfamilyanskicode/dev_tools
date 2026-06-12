@@ -131,8 +131,9 @@ Pyright and VS Code type-checking mode. For TypeScript, `high` enables stricter
 
 The bootstrap writes policy, not environments. It never creates or stores a
 `.venv`; it adds `.venv/` and common cache/build folders to `.gitignore`, sets
-the VS Code interpreter path, and creates uv-oriented Python project defaults
-when `pyproject.toml` is missing.
+the VS Code interpreter path, updates global VS Code user `files.exclude` for
+common Python cache folders, and creates uv-oriented Python project defaults when
+`pyproject.toml` is missing.
 
 Merge policy is intentionally conservative:
 

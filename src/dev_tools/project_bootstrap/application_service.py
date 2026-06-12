@@ -73,9 +73,16 @@ class ProjectBootstrapService:
 
         lines.append(title)
         for operation in operations:
-            lines.append(f"  {operation.relative_file_path.as_posix()}")
+            operation_display_path: str = self.format_operation_file_path(operation)
+            lines.append(f"  {operation_display_path}")
 
         lines.append("")
+
+    def format_operation_file_path(self, operation: BootstrapFileOperation) -> str:
+        if operation.display_path is not None:
+            return operation.display_path
+
+        return operation.relative_file_path.as_posix()
 
     def format_tool_names(self, tool_names: tuple[ToolName, ...]) -> str:
         formatted_tool_names: list[str] = []

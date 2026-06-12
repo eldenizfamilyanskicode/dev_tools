@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import json
+from typing import cast
 
-from typing import TypeAlias, cast
-
-JsonPrimitive: TypeAlias = str | int | float | bool | None
-JsonValue: TypeAlias = JsonPrimitive | "JsonArray" | "JsonObject"
-JsonArray: TypeAlias = list[JsonValue]
-JsonObject: TypeAlias = dict[str, JsonValue]
+type JsonPrimitive = str | int | float | bool | None
+type JsonValue = JsonPrimitive | JsonArray | JsonObject
+type JsonArray = list[JsonValue]
+type JsonObject = dict[str, JsonValue]
 
 
 class JsonMergeService:

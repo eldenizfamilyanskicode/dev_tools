@@ -65,6 +65,8 @@ class BootstrapFileOperation(BaseModel):
     action: BootstrapFileAction
     content: str | None = None
     reason: str = ""
+    target_file_path: Path | None = None
+    display_path: str | None = None
 
 
 class ProjectBootstrapPlan(BaseModel):
@@ -87,3 +89,11 @@ class ProjectBootstrapPlan(BaseModel):
 
         return tuple(matching_operations)
 
+
+class BootstrapAddon(Protocol):
+    def add_operations(
+        self,
+        operations: list[BootstrapFileOperation],
+        request: ProjectBootstrapRequest,
+    ) -> None:
+        raise NotImplementedError

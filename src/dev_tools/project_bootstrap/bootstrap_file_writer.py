@@ -21,23 +21,35 @@ class BootstrapFileWriter:
         content: str,
         force: bool,
         create_only: bool = False,
+        target_file_path: Path | None = None,
+        display_path: str | None = None,
     ) -> BootstrapFileOperation:
-        target_file_path: Path = project_root_path / relative_file_path
+        resolved_target_file_path: Path = project_root_path / relative_file_path
 
-        if not target_file_path.exists():
+        if target_file_path is not None:
+            if not target_file_path.is_absolute():
+                raise ValueError("Bootstrap target file path must be absolute.")
+
+            resolved_target_file_path = target_file_path
+
+        if not resolved_target_file_path.exists():
             return BootstrapFileOperation(
                 relative_file_path=relative_file_path,
                 action=BootstrapFileAction.CREATE,
                 content=content,
+                target_file_path=target_file_path,
+                display_path=display_path,
             )
 
-        current_content: str = target_file_path.read_text(encoding="utf-8")
+        current_content: str = resolved_target_file_path.read_text(encoding="utf-8")
         if current_content == content:
             return BootstrapFileOperation(
                 relative_file_path=relative_file_path,
                 action=BootstrapFileAction.SKIP,
                 content=None,
                 reason="already up to date",
+                target_file_path=target_file_path,
+                display_path=display_path,
             )
 
         if create_only and not force:
@@ -46,12 +58,16 @@ class BootstrapFileWriter:
                 action=BootstrapFileAction.SKIP,
                 content=None,
                 reason="exists",
+                target_file_path=target_file_path,
+                display_path=display_path,
             )
 
         return BootstrapFileOperation(
             relative_file_path=relative_file_path,
             action=BootstrapFileAction.UPDATE,
             content=content,
+            target_file_path=target_file_path,
+            display_path=display_path,
         )
 
     def apply_plan(self, project_root_path: Path, plan: ProjectBootstrapPlan) -> None:
@@ -66,8 +82,10 @@ class BootstrapFileWriter:
                 )
 
             target_file_path: Path = project_root_path / operation.relative_file_path
+            if operation.target_file_path is not None:
+                target_file_path = operation.target_file_path
+
             self.file_system.write_text(
                 file_path=target_file_path,
                 content=operation.content,
             )
-

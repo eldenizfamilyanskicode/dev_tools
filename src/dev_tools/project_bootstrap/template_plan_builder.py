@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from importlib.resources import files
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from dev_tools.project_bootstrap.json_merge_service import (
 from dev_tools.project_bootstrap.managed_block_service import ManagedBlockService
 from dev_tools.project_bootstrap.models import (
     ApplicationType,
+    BootstrapAddon,
     BootstrapFileAction,
     BootstrapFileOperation,
     ProjectBootstrapPlan,
@@ -31,10 +33,12 @@ class TemplatePlanBuilder:
         managed_block_service: ManagedBlockService,
         json_merge_service: JsonMergeService,
         bootstrap_file_writer: BootstrapFileWriter,
+        bootstrap_addons: Sequence[BootstrapAddon] | None = None,
     ) -> None:
         self.managed_block_service = managed_block_service
         self.json_merge_service = json_merge_service
         self.bootstrap_file_writer = bootstrap_file_writer
+        self.bootstrap_addons = tuple(bootstrap_addons or ())
 
     def build_plan(self, request: ProjectBootstrapRequest) -> ProjectBootstrapPlan:
         operations: list[BootstrapFileOperation] = []
@@ -57,6 +61,11 @@ class TemplatePlanBuilder:
             request=request,
             expanded_tool_names=expanded_tool_names,
         )
+        for bootstrap_addon in self.bootstrap_addons:
+            bootstrap_addon.add_operations(
+                operations=operations,
+                request=request,
+            )
 
         if self.includes_python(request.application_type):
             if self.has_tool(expanded_tool_names, ToolName.PYRIGHT):
