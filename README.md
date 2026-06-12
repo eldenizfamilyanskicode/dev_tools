@@ -122,6 +122,9 @@ The setup command:
 - ensures the user-level `Path` contains `global_cli\bin` and does not contain
   `global_cli\`, `global_cli\uv_tools`, or the default non-canonical uv tool
   bin `C:\Users\User\.local\bin`;
+- updates global VS Code user `files.exclude` so common Python cache folders
+  such as `__pycache__`, `.pytest_cache`, `.mypy_cache`, and `.ruff_cache` stay
+  hidden in the Explorer;
 - preserves unrelated `Path` entries and existing `global_cli\README.md`
   content;
 - does not move existing executable shims or uv tool environments.
@@ -200,9 +203,10 @@ Pyright and VS Code type-checking mode. For TypeScript, `high` enables stricter
 
 The bootstrap writes policy, not environments. It never creates or stores a
 `.venv`; it adds `.venv/` and common cache/build folders to `.gitignore`, sets
-the VS Code interpreter path, updates global VS Code user `files.exclude` for
-common Python cache folders, and creates uv-oriented Python project defaults when
-`pyproject.toml` is missing or can receive missing generated sections safely.
+the workspace VS Code interpreter path, and creates uv-oriented Python project
+defaults when `pyproject.toml` is missing or can receive missing generated
+sections safely. Machine-level user settings are configured by
+`dev-tools global-cli setup`, not by per-project initialization.
 
 Merge policy is intentionally conservative:
 

@@ -5,15 +5,8 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Any, cast
 
-from dev_tools.project_bootstrap.addons.vscode_user_files_exclude_addon import (
-    VsCodeUserFilesExcludeAddon,
-)
 from dev_tools.project_bootstrap.application_service import ProjectBootstrapService
 from dev_tools.project_bootstrap.bootstrap_file_writer import BootstrapFileWriter
-from dev_tools.project_bootstrap.constants import (
-    VSCODE_FILES_EXCLUDE_SETTING_NAME,
-    VSCODE_GLOBAL_FILES_EXCLUDE_PATTERNS,
-)
 from dev_tools.project_bootstrap.json_merge_service import JsonMergeService
 from dev_tools.project_bootstrap.json_operation_builder import JsonOperationBuilder
 from dev_tools.project_bootstrap.managed_block_service import ManagedBlockService
@@ -34,9 +27,6 @@ from dev_tools.project_bootstrap.toml_section_merge_service import (
     TomlSectionMergeService,
 )
 from dev_tools.project_bootstrap.toml_section_parser import TomlSectionParser
-from dev_tools.project_bootstrap.vscode_user_settings_path_resolver import (
-    VsCodeUserSettingsPathResolver,
-)
 from dev_tools.shared.file_system import FileSystem
 from dev_tools.templates.constants import (
     DEV_TOOLS_TEMPLATE_PACKAGE,
@@ -44,30 +34,10 @@ from dev_tools.templates.constants import (
 )
 
 
-class FixedVsCodeUserSettingsPathResolver:
-    def __init__(self, settings_file_path: Path) -> None:
-        self.settings_file_path = settings_file_path
-
-    def resolve_settings_file_path(self) -> Path:
-        return self.settings_file_path
-
-
-def build_project_bootstrap_service(
-    vscode_user_settings_file_path: Path,
-) -> ProjectBootstrapService:
+def build_project_bootstrap_service() -> ProjectBootstrapService:
     file_system: FileSystem = FileSystem()
     bootstrap_file_writer: BootstrapFileWriter = BootstrapFileWriter(file_system)
     json_merge_service: JsonMergeService = JsonMergeService()
-    vscode_user_settings_path_resolver: VsCodeUserSettingsPathResolver = (
-        FixedVsCodeUserSettingsPathResolver(vscode_user_settings_file_path)
-    )
-    vscode_user_files_exclude_addon: VsCodeUserFilesExcludeAddon = (
-        VsCodeUserFilesExcludeAddon(
-            json_merge_service=json_merge_service,
-            bootstrap_file_writer=bootstrap_file_writer,
-            vscode_user_settings_path_resolver=vscode_user_settings_path_resolver,
-        )
-    )
     template_plan_builder: TemplatePlanBuilder = TemplatePlanBuilder(
         managed_block_service=ManagedBlockService(),
         json_operation_builder=JsonOperationBuilder(
@@ -82,7 +52,6 @@ def build_project_bootstrap_service(
             bootstrap_file_writer=bootstrap_file_writer,
         ),
         bootstrap_file_writer=bootstrap_file_writer,
-        bootstrap_addons=(vscode_user_files_exclude_addon,),
     )
     return ProjectBootstrapService(
         template_plan_builder=template_plan_builder,
@@ -97,18 +66,9 @@ def bootstrap_project(
     strictness_level: StrictnessLevel = StrictnessLevel.HIGH,
     force: bool = False,
     dry_run: bool = False,
-    vscode_user_settings_file_path: Path | None = None,
 ) -> None:
-    resolved_vscode_user_settings_file_path: Path = (
-        project_root_path / ".test_vscode_user" / "settings.json"
-    )
-    if vscode_user_settings_file_path is not None:
-        resolved_vscode_user_settings_file_path = vscode_user_settings_file_path
-
     project_bootstrap_service: ProjectBootstrapService = (
-        build_project_bootstrap_service(
-            resolved_vscode_user_settings_file_path,
-        )
+        build_project_bootstrap_service()
     )
     request: ProjectBootstrapRequest = ProjectBootstrapRequest(
         project_root_path=project_root_path,
@@ -127,18 +87,9 @@ def build_bootstrap_plan(
     tool_names: tuple[ToolName, ...] = (ToolName.ALL,),
     strictness_level: StrictnessLevel = StrictnessLevel.HIGH,
     force: bool = False,
-    vscode_user_settings_file_path: Path | None = None,
 ) -> tuple[BootstrapFileOperation, ...]:
-    resolved_vscode_user_settings_file_path: Path = (
-        project_root_path / ".test_vscode_user" / "settings.json"
-    )
-    if vscode_user_settings_file_path is not None:
-        resolved_vscode_user_settings_file_path = vscode_user_settings_file_path
-
     project_bootstrap_service: ProjectBootstrapService = (
-        build_project_bootstrap_service(
-            resolved_vscode_user_settings_file_path,
-        )
+        build_project_bootstrap_service()
     )
     request: ProjectBootstrapRequest = ProjectBootstrapRequest(
         project_root_path=project_root_path,
@@ -412,78 +363,6 @@ def test_tsconfig_merge_preserves_existing_compiler_options(tmp_path: Path) -> N
     assert include_paths == ["app", "src"]
 
 
-def test_vscode_user_settings_global_files_exclude_is_created(
-    tmp_path: Path,
-) -> None:
-    vscode_user_settings_file_path: Path = tmp_path / "vscode-user" / "settings.json"
-
-    bootstrap_project(
-        tmp_path,
-        vscode_user_settings_file_path=vscode_user_settings_file_path,
-    )
-
-    settings_data: dict[str, Any] = read_json(vscode_user_settings_file_path)
-    files_exclude_settings: dict[str, bool] = settings_data[
-        VSCODE_FILES_EXCLUDE_SETTING_NAME
-    ]
-
-    for file_pattern in VSCODE_GLOBAL_FILES_EXCLUDE_PATTERNS:
-        assert files_exclude_settings[file_pattern] is True
-
-
-def test_vscode_user_settings_global_files_exclude_preserves_existing_settings(
-    tmp_path: Path,
-) -> None:
-    vscode_user_settings_file_path: Path = tmp_path / "vscode-user" / "settings.json"
-    vscode_user_settings_file_path.parent.mkdir(parents=True)
-    vscode_user_settings_file_path.write_text(
-        json.dumps(
-            {
-                "editor.fontSize": 14,
-                VSCODE_FILES_EXCLUDE_SETTING_NAME: {
-                    "**/custom-cache": False,
-                },
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    bootstrap_project(
-        tmp_path,
-        vscode_user_settings_file_path=vscode_user_settings_file_path,
-    )
-    bootstrap_project(
-        tmp_path,
-        vscode_user_settings_file_path=vscode_user_settings_file_path,
-    )
-
-    settings_data: dict[str, Any] = read_json(vscode_user_settings_file_path)
-    files_exclude_settings: dict[str, bool] = settings_data[
-        VSCODE_FILES_EXCLUDE_SETTING_NAME
-    ]
-
-    assert settings_data["editor.fontSize"] == 14
-    assert files_exclude_settings["**/custom-cache"] is False
-
-    for file_pattern in VSCODE_GLOBAL_FILES_EXCLUDE_PATTERNS:
-        assert files_exclude_settings[file_pattern] is True
-
-
-def test_vscode_user_settings_invalid_json_is_not_overwritten(
-    tmp_path: Path,
-) -> None:
-    vscode_user_settings_file_path: Path = tmp_path / "vscode-user" / "settings.json"
-    vscode_user_settings_file_path.parent.mkdir(parents=True)
-    vscode_user_settings_file_path.write_text("{", encoding="utf-8")
-
-    bootstrap_project(
-        tmp_path,
-        vscode_user_settings_file_path=vscode_user_settings_file_path,
-    )
-
-    assert vscode_user_settings_file_path.read_text(encoding="utf-8") == "{"
-
-
 def test_existing_pyproject_receives_missing_managed_sections(tmp_path: Path) -> None:
     pyproject_file_path: Path = tmp_path / "pyproject.toml"
     pyproject_file_path.write_text('[project]\nname = "custom"\n', encoding="utf-8")
@@ -502,7 +381,7 @@ def test_existing_pyproject_receives_missing_managed_sections(tmp_path: Path) ->
 def test_existing_pyproject_receives_missing_managed_options(tmp_path: Path) -> None:
     pyproject_file_path: Path = tmp_path / "pyproject.toml"
     pyproject_file_path.write_text(
-        '[tool.ruff]\nline-length = 100\n',
+        "[tool.ruff]\nline-length = 100\n",
         encoding="utf-8",
     )
 
@@ -562,14 +441,7 @@ def test_force_overwrites_force_managed_files(tmp_path: Path) -> None:
 
 
 def test_dry_run_does_not_write_files(tmp_path: Path) -> None:
-    vscode_user_settings_file_path: Path = tmp_path / "vscode-user" / "settings.json"
-
-    bootstrap_project(
-        tmp_path,
-        dry_run=True,
-        vscode_user_settings_file_path=vscode_user_settings_file_path,
-    )
+    bootstrap_project(tmp_path, dry_run=True)
 
     assert not (tmp_path / ".gitignore").exists()
     assert not (tmp_path / ".vscode" / "settings.json").exists()
-    assert not vscode_user_settings_file_path.exists()

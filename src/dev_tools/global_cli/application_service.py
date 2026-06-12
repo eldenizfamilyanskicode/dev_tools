@@ -19,6 +19,9 @@ from dev_tools.global_cli.models import (
     GlobalCliSetupTargetType,
 )
 from dev_tools.global_cli.user_environment_adapter import UserEnvironmentAdapter
+from dev_tools.global_cli.vscode_user_settings_setup_operation_builder import (
+    VsCodeUserSettingsSetupOperationBuilder,
+)
 from dev_tools.shared.file_system import FileSystem
 
 
@@ -28,10 +31,16 @@ class GlobalCliSetupService:
         layout_resolver: GlobalCliLayoutResolver,
         file_system: FileSystem,
         user_environment_adapter: UserEnvironmentAdapter,
+        vscode_user_settings_setup_operation_builder: (
+            VsCodeUserSettingsSetupOperationBuilder
+        ),
     ) -> None:
         self.layout_resolver: GlobalCliLayoutResolver = layout_resolver
         self.file_system: FileSystem = file_system
         self.user_environment_adapter: UserEnvironmentAdapter = user_environment_adapter
+        self.vscode_user_settings_setup_operation_builder = (
+            vscode_user_settings_setup_operation_builder
+        )
 
     def setup_global_cli(self, dry_run: bool = False) -> str:
         plan: GlobalCliSetupPlan = self.build_setup_plan()
@@ -67,6 +76,9 @@ class GlobalCliSetupService:
             )
         )
         operations.append(self.build_user_path_operation(layout))
+        operations.append(
+            self.vscode_user_settings_setup_operation_builder.build_operation()
+        )
 
         return GlobalCliSetupPlan(layout=layout, operations=tuple(operations))
 
@@ -124,6 +136,7 @@ class GlobalCliSetupService:
             target_type=GlobalCliSetupTargetType.FILE,
             target_name=str(readme_file_path),
             target_path=readme_file_path,
+            content=GLOBAL_CLI_LAYOUT_README_CONTENT,
             reason=reason,
         )
 
@@ -260,7 +273,10 @@ class GlobalCliSetupService:
         environment_was_updated: bool = False
 
         for operation in plan.operations:
-            if operation.action == GlobalCliSetupAction.SKIP:
+            if operation.action in (
+                GlobalCliSetupAction.SKIP,
+                GlobalCliSetupAction.CONFLICT,
+            ):
                 continue
 
             match operation.target_type:
@@ -285,10 +301,12 @@ class GlobalCliSetupService:
         if operation.target_path is None:
             raise GlobalCliSetupError("File operation is missing target path.")
 
-        self.file_system.write_text_if_missing(
+        if operation.content is None:
+            raise GlobalCliSetupError("File operation is missing content.")
+
+        self.file_system.write_text(
             file_path=operation.target_path,
-            content=GLOBAL_CLI_LAYOUT_README_CONTENT,
-            force=False,
+            content=operation.content,
         )
 
     def apply_environment_variable_operation(
@@ -349,12 +367,15 @@ class GlobalCliSetupService:
             GlobalCliSetupAction.CREATE: "Will create" if dry_run else "Created",
             GlobalCliSetupAction.UPDATE: "Will update" if dry_run else "Updated",
             GlobalCliSetupAction.SKIP: "Already configured",
+            GlobalCliSetupAction.CONFLICT: "Conflict",
         }
 
         for operation in plan.operations:
             operation_prefix: str = operation_prefixes[operation.action]
             target_text: str = self.format_operation_target(operation)
             lines.append(f"{operation_prefix}: {target_text}")
+            if operation.action == GlobalCliSetupAction.CONFLICT and operation.reason:
+                lines.append(f"  reason: {operation.reason}")
 
     def format_operation_target(self, operation: GlobalCliSetupOperation) -> str:
         match operation.target_type:

@@ -5,7 +5,7 @@ import platform
 from pathlib import Path
 from typing import Protocol
 
-from dev_tools.project_bootstrap.constants import (
+from dev_tools.global_cli.constants import (
     LINUX_CONFIGURATION_ENVIRONMENT_VARIABLE_NAME,
     LINUX_FALLBACK_CONFIGURATION_DIRECTORY_NAME,
     MACOS_CONFIGURATION_PATH_PARTS,

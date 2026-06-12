@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from dev_tools.project_bootstrap.constants import VSCODE_FILES_EXCLUDE_SETTING_NAME
 from dev_tools.project_policy.application_service import ProjectPolicyService
 from tests.project_policy_helpers import (
     bootstrap_and_record_project,
@@ -318,39 +317,6 @@ def test_apply_policy_updates_force_overwrites_conflicting_managed_values(
     assert "Applied project policy updates" in result_text
     assert isinstance(package_scripts, dict)
     assert package_scripts["typecheck"] == "tsc --noEmit"
-
-
-def test_apply_policy_updates_force_overwrites_invalid_vscode_user_settings(
-    tmp_path: Path,
-) -> None:
-    project_root_path: Path = tmp_path / "sample_project"
-    vscode_user_settings_file_path: Path = tmp_path / "vscode" / "settings.json"
-    project_root_path.mkdir()
-    vscode_user_settings_file_path.parent.mkdir(parents=True)
-    vscode_user_settings_file_path.write_text("{", encoding="utf-8")
-    project_policy_service: ProjectPolicyService = build_project_policy_service(
-        index_file_path=tmp_path / "index" / "project_index.toml",
-        vscode_user_settings_file_path=vscode_user_settings_file_path,
-    )
-    bootstrap_and_record_project(
-        project_policy_service=project_policy_service,
-        project_root_path=project_root_path,
-    )
-
-    project_policy_service.apply_policy_updates(
-        requested_project_root=project_root_path,
-        include_all_projects=False,
-        force=True,
-    )
-    settings_document: dict[str, object] = json.loads(
-        vscode_user_settings_file_path.read_text(encoding="utf-8")
-    )
-    files_exclude_settings: object = settings_document[
-        VSCODE_FILES_EXCLUDE_SETTING_NAME
-    ]
-
-    assert isinstance(files_exclude_settings, dict)
-    assert files_exclude_settings["**/__pycache__"] is True
 
 
 def test_projects_doctor_marks_invalid_manifest(tmp_path: Path) -> None:

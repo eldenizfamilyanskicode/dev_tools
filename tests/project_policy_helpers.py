@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from dev_tools.project_bootstrap.addons.vscode_user_files_exclude_addon import (
-    VsCodeUserFilesExcludeAddon,
-)
 from dev_tools.project_bootstrap.application_service import ProjectBootstrapService
 from dev_tools.project_bootstrap.bootstrap_file_writer import BootstrapFileWriter
 from dev_tools.project_bootstrap.json_merge_service import JsonMergeService
@@ -26,9 +23,6 @@ from dev_tools.project_bootstrap.toml_section_merge_service import (
     TomlSectionMergeService,
 )
 from dev_tools.project_bootstrap.toml_section_parser import TomlSectionParser
-from dev_tools.project_bootstrap.vscode_user_settings_path_resolver import (
-    VsCodeUserSettingsPathResolver,
-)
 from dev_tools.project_context.project_root_resolver import ProjectRootResolver
 from dev_tools.project_policy.application_service import ProjectPolicyService
 from dev_tools.project_policy.manifest_store import ProjectPolicyManifestStore
@@ -45,14 +39,6 @@ class FixedTimestampService:
         return "2026-06-12 19:30:00 UTC"
 
 
-class FixedVsCodeUserSettingsPathResolver:
-    def __init__(self, settings_file_path: Path) -> None:
-        self.settings_file_path = settings_file_path
-
-    def resolve_settings_file_path(self) -> Path:
-        return self.settings_file_path
-
-
 def build_project_policy_service(
     index_file_path: Path,
     vscode_user_settings_file_path: Path,
@@ -60,16 +46,6 @@ def build_project_policy_service(
     file_system: FileSystem = FileSystem()
     json_merge_service: JsonMergeService = JsonMergeService()
     bootstrap_file_writer: BootstrapFileWriter = BootstrapFileWriter(file_system)
-    vscode_user_settings_path_resolver: VsCodeUserSettingsPathResolver = (
-        FixedVsCodeUserSettingsPathResolver(vscode_user_settings_file_path)
-    )
-    vscode_user_files_exclude_addon: VsCodeUserFilesExcludeAddon = (
-        VsCodeUserFilesExcludeAddon(
-            json_merge_service=json_merge_service,
-            bootstrap_file_writer=bootstrap_file_writer,
-            vscode_user_settings_path_resolver=vscode_user_settings_path_resolver,
-        )
-    )
     template_plan_builder: TemplatePlanBuilder = TemplatePlanBuilder(
         managed_block_service=ManagedBlockService(),
         json_operation_builder=JsonOperationBuilder(
@@ -84,7 +60,6 @@ def build_project_policy_service(
             bootstrap_file_writer=bootstrap_file_writer,
         ),
         bootstrap_file_writer=bootstrap_file_writer,
-        bootstrap_addons=(vscode_user_files_exclude_addon,),
     )
     project_bootstrap_service: ProjectBootstrapService = ProjectBootstrapService(
         template_plan_builder=template_plan_builder,

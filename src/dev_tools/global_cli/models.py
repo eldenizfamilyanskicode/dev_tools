@@ -10,6 +10,7 @@ class GlobalCliSetupAction(StrEnum):
     CREATE = "create"
     UPDATE = "update"
     SKIP = "skip"
+    CONFLICT = "conflict"
 
 
 class GlobalCliSetupTargetType(StrEnum):
@@ -35,6 +36,7 @@ class GlobalCliSetupOperation(BaseModel):
     target_type: GlobalCliSetupTargetType
     target_name: str
     target_path: Path | None = None
+    content: str | None = None
     environment_variable_name: str | None = None
     current_value: str | None = None
     desired_value: str | None = None
