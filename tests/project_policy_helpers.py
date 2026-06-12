@@ -25,6 +25,7 @@ from dev_tools.project_bootstrap.template_plan_builder import TemplatePlanBuilde
 from dev_tools.project_bootstrap.toml_section_merge_service import (
     TomlSectionMergeService,
 )
+from dev_tools.project_bootstrap.toml_section_parser import TomlSectionParser
 from dev_tools.project_bootstrap.vscode_user_settings_path_resolver import (
     VsCodeUserSettingsPathResolver,
 )
@@ -77,7 +78,9 @@ def build_project_policy_service(
         ),
         template_content_builder=TemplateContentBuilder(),
         pyproject_operation_builder=PyprojectOperationBuilder(
-            toml_section_merge_service=TomlSectionMergeService(),
+            toml_section_merge_service=TomlSectionMergeService(
+                toml_section_parser=TomlSectionParser(),
+            ),
             bootstrap_file_writer=bootstrap_file_writer,
         ),
         bootstrap_file_writer=bootstrap_file_writer,

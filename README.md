@@ -157,8 +157,8 @@ Merge policy is intentionally conservative:
 - `.gitignore` uses a replaceable `dev-tools` managed block;
 - `.vscode/settings.json`, `.vscode/extensions.json`, and `pyrightconfig.json`
   are JSON-merged while preserving unknown user keys;
-- `pyproject.toml` gets only missing generated TOML sections appended; existing
-  sections are not rewritten;
+- `pyproject.toml` gets missing generated TOML sections and missing generated
+  keys inside existing sections; existing values are preserved;
 - `package.json` and `tsconfig.json` are JSON-merged while preserving unknown
   user keys;
 - `prettier.config.mjs` is created only when missing, unless `--force` is used.

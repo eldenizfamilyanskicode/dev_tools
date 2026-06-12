@@ -33,6 +33,7 @@ from dev_tools.project_bootstrap.template_plan_builder import TemplatePlanBuilde
 from dev_tools.project_bootstrap.toml_section_merge_service import (
     TomlSectionMergeService,
 )
+from dev_tools.project_bootstrap.toml_section_parser import TomlSectionParser
 from dev_tools.project_bootstrap.vscode_user_settings_path_resolver import (
     VsCodeUserSettingsPathResolver,
 )
@@ -75,7 +76,9 @@ def build_project_bootstrap_service(
         ),
         template_content_builder=TemplateContentBuilder(),
         pyproject_operation_builder=PyprojectOperationBuilder(
-            toml_section_merge_service=TomlSectionMergeService(),
+            toml_section_merge_service=TomlSectionMergeService(
+                toml_section_parser=TomlSectionParser(),
+            ),
             bootstrap_file_writer=bootstrap_file_writer,
         ),
         bootstrap_file_writer=bootstrap_file_writer,
@@ -345,6 +348,39 @@ def test_package_json_force_overwrites_managed_values(tmp_path: Path) -> None:
     assert package_development_dependencies["typescript"] == "^5.8.0"
 
 
+def test_package_json_preserved_only_merge_does_not_rewrite_file(
+    tmp_path: Path,
+) -> None:
+    package_file_path: Path = tmp_path / "package.json"
+    initial_content: str = json.dumps(
+        {
+            "name": "custom-package",
+            "version": "9.9.9",
+            "private": True,
+            "type": "module",
+            "scripts": {
+                "typecheck": "custom-typecheck",
+                "format": "prettier --write .",
+                "format:check": "prettier --check .",
+            },
+            "devDependencies": {
+                "prettier": "^3.5.0",
+                "typescript": "5.0.0",
+            },
+        },
+        separators=(",", ":"),
+    )
+    package_file_path.write_text(initial_content, encoding="utf-8")
+
+    bootstrap_project(
+        tmp_path,
+        application_type=ApplicationType.TYPESCRIPT,
+        tool_names=(ToolName.PRETTIER,),
+    )
+
+    assert package_file_path.read_text(encoding="utf-8") == initial_content
+
+
 def test_tsconfig_merge_preserves_existing_compiler_options(tmp_path: Path) -> None:
     tsconfig_file_path: Path = tmp_path / "tsconfig.json"
     tsconfig_file_path.write_text(
@@ -458,8 +494,25 @@ def test_existing_pyproject_receives_missing_managed_sections(tmp_path: Path) ->
 
     assert '[project]\nname = "custom"\n' in pyproject_content
     assert pyproject_content.count("[project]") == 1
+    assert 'version = "0.1.0"' in pyproject_content
     assert "[tool.uv]" in pyproject_content
     assert "[tool.ruff]" in pyproject_content
+
+
+def test_existing_pyproject_receives_missing_managed_options(tmp_path: Path) -> None:
+    pyproject_file_path: Path = tmp_path / "pyproject.toml"
+    pyproject_file_path.write_text(
+        '[tool.ruff]\nline-length = 100\n',
+        encoding="utf-8",
+    )
+
+    bootstrap_project(tmp_path)
+
+    pyproject_content: str = pyproject_file_path.read_text(encoding="utf-8")
+
+    assert pyproject_content.count("[tool.ruff]") == 1
+    assert "line-length = 100" in pyproject_content
+    assert 'target-version = "py312"' in pyproject_content
 
 
 def test_existing_pyproject_reports_preserved_managed_sections(
@@ -481,8 +534,10 @@ def test_existing_pyproject_reports_preserved_managed_sections(
 
     assert pyproject_operation is not None
     assert pyproject_operation.action == BootstrapFileAction.UPDATE
-    assert "[project]" in pyproject_operation.preserved_paths
-    assert "[tool.ruff]" in pyproject_operation.preserved_paths
+    assert "[project].name" in pyproject_operation.preserved_paths
+    assert "[tool.ruff].line-length" in pyproject_operation.preserved_paths
+    assert "[project].version" in pyproject_operation.applied_paths
+    assert "[tool.ruff].target-version" in pyproject_operation.applied_paths
     assert "[tool.uv]" in pyproject_operation.applied_paths
 
 

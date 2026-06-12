@@ -20,6 +20,7 @@ from dev_tools.project_bootstrap.template_plan_builder import TemplatePlanBuilde
 from dev_tools.project_bootstrap.toml_section_merge_service import (
     TomlSectionMergeService,
 )
+from dev_tools.project_bootstrap.toml_section_parser import TomlSectionParser
 from dev_tools.project_bootstrap.vscode_user_settings_path_resolver import (
     DefaultVsCodeUserSettingsPathResolver,
 )
@@ -30,7 +31,11 @@ class ProjectBootstrapContainer(containers.DeclarativeContainer):
 
     managed_block_service = Factory(ManagedBlockService)
     json_merge_service = Factory(JsonMergeService)
-    toml_section_merge_service = Factory(TomlSectionMergeService)
+    toml_section_parser = Factory(TomlSectionParser)
+    toml_section_merge_service = Factory(
+        TomlSectionMergeService,
+        toml_section_parser=toml_section_parser,
+    )
     template_content_builder = Factory(TemplateContentBuilder)
     vscode_user_settings_path_resolver = Factory(DefaultVsCodeUserSettingsPathResolver)
 

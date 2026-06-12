@@ -28,9 +28,6 @@ class ProjectPolicyOperationStatusResolver:
         if operation.reason == "already up to date":
             return PolicyApplicationStatus.ALREADY_SATISFIED
 
-        if operation.action == BootstrapFileAction.SKIP and operation.preserved_paths:
-            return PolicyApplicationStatus.ALREADY_SATISFIED
-
         if "not safe to merge" in operation.reason:
             return PolicyApplicationStatus.CONFLICT
 

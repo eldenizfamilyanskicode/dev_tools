@@ -172,8 +172,8 @@ def test_policy_plan_shows_revision_action_and_merge_details(tmp_path: Path) -> 
         include_all_projects=False,
     )
 
-    assert "package_json.typescript_tooling_defaults@1 [current]" in result_text
-    assert "action: skip; status: already_satisfied" in result_text
+    assert "package_json.typescript_tooling_defaults@1 [skipped]" in result_text
+    assert "action: skip; status: skipped_existing" in result_text
     assert "target: package.json; merge: json_merge" in result_text
     assert "preserved: name, version" in result_text
 
@@ -216,7 +216,7 @@ def test_apply_policy_updates_preserves_user_values_and_records_satisfied_status
     assert "Applied project policy updates" in result_text
     assert package_document["name"] == "custom-package"
     assert package_document["version"] == "9.9.9"
-    assert 'status = "already_satisfied"' in manifest_content
+    assert 'status = "skipped_existing"' in manifest_content
     assert 'preserved_paths = ["name", "version"]' in manifest_content
 
 

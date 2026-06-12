@@ -84,10 +84,14 @@ class VsCodeUserFilesExcludeAddon:
                 conflict_paths=(),
             )
 
+        operation_content: str = merge_result.content
+        if settings_file_path.exists() and not merge_result.applied_paths:
+            operation_content = current_content
+
         operation: BootstrapFileOperation = self.bootstrap_file_writer.build_operation(
             project_root_path=request.project_root_path,
             relative_file_path=Path(VSCODE_SETTINGS_FILE_NAME),
-            content=merge_result.content,
+            content=operation_content,
             force=request.force,
             create_only=False,
             target_file_path=settings_file_path,

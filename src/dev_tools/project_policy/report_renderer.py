@@ -201,6 +201,11 @@ class ProjectPolicyReportRenderer:
             lines.append(f"  applied policies: {applied_policy_count}")
             lines.append(f"  conflict policies: {conflict_policy_count}")
             lines.append(f"  skipped policies: {skipped_policy_count}")
+            self.append_policy_plan_lines(
+                lines=lines,
+                manifest=apply_result.manifest,
+                plan=apply_result.plan,
+            )
 
         self.append_skipped_registered_projects(lines, project_index)
         return "\n".join(lines).rstrip() + "\n"
@@ -321,6 +326,12 @@ class ProjectPolicyReportRenderer:
             return "conflict"
 
         if operation.action == BootstrapFileAction.SKIP:
+            operation_status: PolicyApplicationStatus = (
+                self.operation_status_resolver.resolve_operation_status(operation)
+            )
+            if operation_status == PolicyApplicationStatus.SKIPPED_EXISTING:
+                return "skipped"
+
             return "current"
 
         return "drift"

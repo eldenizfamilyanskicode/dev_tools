@@ -66,10 +66,14 @@ class JsonOperationBuilder:
                 conflict_paths=(),
             )
 
+        operation_content: str = merge_result.content
+        if target_file_path.exists() and not merge_result.applied_paths:
+            operation_content = current_content
+
         return self.bootstrap_file_writer.build_operation(
             project_root_path=project_root_path,
             relative_file_path=relative_file_path,
-            content=merge_result.content,
+            content=operation_content,
             force=force,
             create_only=create_only,
             policy_id=policy_id,

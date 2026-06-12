@@ -13,6 +13,7 @@ from dev_tools.project_bootstrap.models import (
     BootstrapFileOperation,
 )
 from dev_tools.project_bootstrap.toml_section_merge_service import (
+    TomlMergeResult,
     TomlSectionMergeService,
 )
 
@@ -47,20 +48,8 @@ class PyprojectOperationBuilder:
         current_content: str = target_file_path.read_text(encoding="utf-8")
 
         try:
-            missing_section_names: tuple[str, ...] = (
-                self.toml_section_merge_service.collect_missing_section_names(
-                    current_content=current_content,
-                    managed_content=content,
-                )
-            )
-            preserved_section_names: tuple[str, ...] = (
-                self.toml_section_merge_service.collect_preserved_section_names(
-                    current_content=current_content,
-                    managed_content=content,
-                )
-            )
-            merged_content: str = (
-                self.toml_section_merge_service.merge_missing_sections(
+            merge_result: TomlMergeResult = (
+                self.toml_section_merge_service.build_merge_result(
                     current_content=current_content,
                     managed_content=content,
                 )
@@ -77,14 +66,19 @@ class PyprojectOperationBuilder:
                 conflict_paths=("$",),
             )
 
+        operation_content: str = merge_result.content
+        if not merge_result.applied_paths:
+            operation_content = current_content
+
         return self.build_text_operation(
             project_root_path=project_root_path,
             relative_file_path=relative_file_path,
-            content=merged_content,
+            content=operation_content,
             force=force,
-            applied_paths=missing_section_names,
-            preserved_paths=preserved_section_names,
-            reason=self.build_toml_merge_reason(missing_section_names),
+            applied_paths=merge_result.applied_paths,
+            preserved_paths=merge_result.preserved_paths,
+            conflict_paths=merge_result.conflict_paths,
+            reason=self.build_toml_merge_reason(merge_result),
         )
 
     def build_text_operation(
@@ -113,12 +107,33 @@ class PyprojectOperationBuilder:
             reason=reason,
         )
 
-    def build_toml_merge_reason(self, missing_section_names: tuple[str, ...]) -> str:
-        if not missing_section_names:
-            return ""
+    def build_toml_merge_reason(self, merge_result: TomlMergeResult) -> str:
+        reason_parts: list[str] = []
 
-        formatted_section_names: list[str] = []
-        for section_name in missing_section_names:
-            formatted_section_names.append(section_name)
+        if merge_result.applied_paths:
+            reason_parts.append(
+                "missing TOML entries added: "
+                f"{self.format_paths(merge_result.applied_paths)}"
+            )
 
-        return "missing sections added: " + ", ".join(formatted_section_names)
+        if merge_result.preserved_paths:
+            reason_parts.append(
+                "preserved existing TOML entries: "
+                f"{self.format_paths(merge_result.preserved_paths)}"
+            )
+
+        if merge_result.conflict_paths:
+            reason_parts.append(
+                "conflicting TOML sections: "
+                f"{self.format_paths(merge_result.conflict_paths)}"
+            )
+
+        return "; ".join(reason_parts)
+
+    def format_paths(self, paths: tuple[str, ...]) -> str:
+        formatted_paths: list[str] = []
+
+        for path in paths:
+            formatted_paths.append(path)
+
+        return ", ".join(formatted_paths)
