@@ -13,6 +13,9 @@ class ProjectPolicyOperationStatusResolver:
         self,
         operation: BootstrapFileOperation,
     ) -> PolicyApplicationStatus:
+        if operation.action == BootstrapFileAction.CONFLICT:
+            return PolicyApplicationStatus.CONFLICT
+
         if operation.conflict_paths:
             return PolicyApplicationStatus.CONFLICT
 

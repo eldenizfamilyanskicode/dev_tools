@@ -90,6 +90,7 @@ class ProjectPolicyCliContribution:
             formatter_class=DevToolsHelpFormatter,
         )
         self.add_policy_target_arguments(plan_parser)
+        self.add_force_argument(plan_parser)
         plan_parser.set_defaults(command_handler=self.handle_policies_plan_command)
 
         apply_parser: argparse.ArgumentParser = policies_subparsers.add_parser(
@@ -99,6 +100,7 @@ class ProjectPolicyCliContribution:
             formatter_class=DevToolsHelpFormatter,
         )
         self.add_policy_target_arguments(apply_parser)
+        self.add_force_argument(apply_parser)
         apply_parser.set_defaults(command_handler=self.handle_policies_apply_command)
 
     def add_policy_target_arguments(
@@ -111,6 +113,16 @@ class ProjectPolicyCliContribution:
             action="store_true",
             dest="include_all_projects",
             help="Use all active projects from the global dev-tools index.",
+        )
+
+    def add_force_argument(
+        self,
+        argument_parser: argparse.ArgumentParser,
+    ) -> None:
+        argument_parser.add_argument(
+            "--force",
+            action="store_true",
+            help="Overwrite conflicting managed values instead of reporting conflicts.",
         )
 
     def handle_projects_list_command(self, arguments: argparse.Namespace) -> int:
@@ -151,10 +163,15 @@ class ProjectPolicyCliContribution:
             arguments=arguments,
             argument_name="include_all_projects",
         )
+        force: bool = self.cli_argument_reader.get_bool_argument(
+            arguments=arguments,
+            argument_name="force",
+        )
         print(
             self.project_policy_service.render_update_plan(
                 requested_project_root=requested_project_root,
                 include_all_projects=include_all_projects,
+                force=force,
             ),
             end="",
         )
@@ -168,10 +185,15 @@ class ProjectPolicyCliContribution:
             arguments=arguments,
             argument_name="include_all_projects",
         )
+        force: bool = self.cli_argument_reader.get_bool_argument(
+            arguments=arguments,
+            argument_name="force",
+        )
         print(
             self.project_policy_service.apply_policy_updates(
                 requested_project_root=requested_project_root,
                 include_all_projects=include_all_projects,
+                force=force,
             ),
             end="",
         )

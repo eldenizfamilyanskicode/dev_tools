@@ -57,6 +57,11 @@ class ProjectBootstrapService:
         )
         self.append_operation_group(
             lines=lines,
+            title="Conflicts; will not write without --force:",
+            operations=plan.iter_operations_for_action(BootstrapFileAction.CONFLICT),
+        )
+        self.append_operation_group(
+            lines=lines,
             title="Will skip existing:",
             operations=plan.iter_operations_for_action(BootstrapFileAction.SKIP),
         )

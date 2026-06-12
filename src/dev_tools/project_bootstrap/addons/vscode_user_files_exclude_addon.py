@@ -55,30 +55,40 @@ class VsCodeUserFilesExcludeAddon:
             merge_result: JsonMergeResult = self.json_merge_service.build_merge_result(
                 current_content=current_content,
                 managed_data=self.build_managed_settings_data(),
-                overwrite_existing_values=False,
+                overwrite_existing_values=request.force,
             )
         except ValueError:
-            operations.append(
-                BootstrapFileOperation(
-                    relative_file_path=Path(VSCODE_SETTINGS_FILE_NAME),
-                    action=BootstrapFileAction.SKIP,
-                    content=None,
-                    reason="existing JSON is not safe to merge",
-                    target_file_path=settings_file_path,
-                    display_path=VSCODE_USER_SETTINGS_DISPLAY_PATH,
-                    policy_id=POLICY_VSCODE_USER_FILES_EXCLUDE_ID,
-                    policy_revision=POLICY_VSCODE_USER_FILES_EXCLUDE_REVISION,
-                    merge_strategy="json_merge",
-                    conflict_paths=("$",),
+            if settings_file_path.exists() and not request.force:
+                operations.append(
+                    BootstrapFileOperation(
+                        relative_file_path=Path(VSCODE_SETTINGS_FILE_NAME),
+                        action=BootstrapFileAction.CONFLICT,
+                        content=None,
+                        reason="existing JSON is not safe to merge",
+                        target_file_path=settings_file_path,
+                        display_path=VSCODE_USER_SETTINGS_DISPLAY_PATH,
+                        policy_id=POLICY_VSCODE_USER_FILES_EXCLUDE_ID,
+                        policy_revision=POLICY_VSCODE_USER_FILES_EXCLUDE_REVISION,
+                        merge_strategy="json_merge",
+                        conflict_paths=("$",),
+                    )
                 )
+                return
+
+            merge_result = JsonMergeResult(
+                content=self.json_merge_service.dump_json(
+                    self.build_managed_settings_data()
+                ),
+                applied_paths=("$",),
+                preserved_paths=(),
+                conflict_paths=(),
             )
-            return
 
         operation: BootstrapFileOperation = self.bootstrap_file_writer.build_operation(
             project_root_path=request.project_root_path,
             relative_file_path=Path(VSCODE_SETTINGS_FILE_NAME),
             content=merge_result.content,
-            force=False,
+            force=request.force,
             create_only=False,
             target_file_path=settings_file_path,
             display_path=VSCODE_USER_SETTINGS_DISPLAY_PATH,

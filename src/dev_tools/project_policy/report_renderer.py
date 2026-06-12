@@ -317,6 +317,9 @@ class ProjectPolicyReportRenderer:
         if existing_policy_record.policy_revision > operation.policy_revision:
             return f"ahead at {existing_policy_record.policy_revision}"
 
+        if operation.action == BootstrapFileAction.CONFLICT:
+            return "conflict"
+
         if operation.action == BootstrapFileAction.SKIP:
             return "current"
 

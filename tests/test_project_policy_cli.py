@@ -62,6 +62,16 @@ def test_policies_plan_all_sets_include_all_projects() -> None:
     assert recording_service.plan_arguments is not None
     assert recording_service.plan_arguments["include_all_projects"] is True
     assert recording_service.plan_arguments["requested_project_root"] is None
+    assert recording_service.plan_arguments["force"] is False
+
+
+def test_policies_plan_force_sets_force() -> None:
+    recording_service: RecordingProjectPolicyService = run_policy_command(
+        ["policies", "plan", "--force"]
+    )
+
+    assert recording_service.plan_arguments is not None
+    assert recording_service.plan_arguments["force"] is True
 
 
 def test_policies_apply_project_root_is_resolved() -> None:
@@ -72,3 +82,13 @@ def test_policies_apply_project_root_is_resolved() -> None:
     assert recording_service.apply_arguments is not None
     assert recording_service.apply_arguments["include_all_projects"] is False
     assert isinstance(recording_service.apply_arguments["requested_project_root"], Path)
+    assert recording_service.apply_arguments["force"] is False
+
+
+def test_policies_apply_force_sets_force() -> None:
+    recording_service: RecordingProjectPolicyService = run_policy_command(
+        ["policies", "apply", "--force"]
+    )
+
+    assert recording_service.apply_arguments is not None
+    assert recording_service.apply_arguments["force"] is True

@@ -62,7 +62,7 @@ class PyprojectOperationBuilder:
         except tomllib.TOMLDecodeError:
             return BootstrapFileOperation(
                 relative_file_path=relative_file_path,
-                action=BootstrapFileAction.SKIP,
+                action=BootstrapFileAction.CONFLICT,
                 content=None,
                 reason="existing TOML is not safe to merge",
                 policy_id=POLICY_PYPROJECT_DEFAULTS_ID,

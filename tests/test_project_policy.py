@@ -3,130 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from dev_tools.project_bootstrap.addons.vscode_user_files_exclude_addon import (
-    VsCodeUserFilesExcludeAddon,
-)
-from dev_tools.project_bootstrap.application_service import ProjectBootstrapService
-from dev_tools.project_bootstrap.bootstrap_file_writer import BootstrapFileWriter
-from dev_tools.project_bootstrap.json_merge_service import JsonMergeService
-from dev_tools.project_bootstrap.json_operation_builder import JsonOperationBuilder
-from dev_tools.project_bootstrap.managed_block_service import ManagedBlockService
-from dev_tools.project_bootstrap.models import (
-    ApplicationType,
-    ProjectBootstrapRequest,
-    StrictnessLevel,
-    ToolName,
-)
-from dev_tools.project_bootstrap.pyproject_operation_builder import (
-    PyprojectOperationBuilder,
-)
-from dev_tools.project_bootstrap.template_content_builder import TemplateContentBuilder
-from dev_tools.project_bootstrap.template_plan_builder import TemplatePlanBuilder
-from dev_tools.project_bootstrap.toml_section_merge_service import (
-    TomlSectionMergeService,
-)
-from dev_tools.project_bootstrap.vscode_user_settings_path_resolver import (
-    VsCodeUserSettingsPathResolver,
-)
-from dev_tools.project_context.project_root_resolver import ProjectRootResolver
+from dev_tools.project_bootstrap.constants import VSCODE_FILES_EXCLUDE_SETTING_NAME
 from dev_tools.project_policy.application_service import ProjectPolicyService
-from dev_tools.project_policy.manifest_store import ProjectPolicyManifestStore
-from dev_tools.project_policy.operation_status_resolver import (
-    ProjectPolicyOperationStatusResolver,
+from tests.project_policy_helpers import (
+    bootstrap_and_record_project,
+    build_project_policy_service,
 )
-from dev_tools.project_policy.project_index_store import ProjectIndexStore
-from dev_tools.project_policy.report_renderer import ProjectPolicyReportRenderer
-from dev_tools.shared.file_system import FileSystem
-
-
-class FixedTimestampService:
-    def build_current_timestamp(self) -> str:
-        return "2026-06-12 19:30:00 UTC"
-
-
-class FixedVsCodeUserSettingsPathResolver:
-    def __init__(self, settings_file_path: Path) -> None:
-        self.settings_file_path = settings_file_path
-
-    def resolve_settings_file_path(self) -> Path:
-        return self.settings_file_path
-
-
-def build_project_policy_service(
-    index_file_path: Path,
-    vscode_user_settings_file_path: Path,
-) -> ProjectPolicyService:
-    file_system: FileSystem = FileSystem()
-    json_merge_service: JsonMergeService = JsonMergeService()
-    bootstrap_file_writer: BootstrapFileWriter = BootstrapFileWriter(file_system)
-    vscode_user_settings_path_resolver: VsCodeUserSettingsPathResolver = (
-        FixedVsCodeUserSettingsPathResolver(vscode_user_settings_file_path)
-    )
-    vscode_user_files_exclude_addon: VsCodeUserFilesExcludeAddon = (
-        VsCodeUserFilesExcludeAddon(
-            json_merge_service=json_merge_service,
-            bootstrap_file_writer=bootstrap_file_writer,
-            vscode_user_settings_path_resolver=vscode_user_settings_path_resolver,
-        )
-    )
-    template_plan_builder: TemplatePlanBuilder = TemplatePlanBuilder(
-        managed_block_service=ManagedBlockService(),
-        json_operation_builder=JsonOperationBuilder(
-            json_merge_service=json_merge_service,
-            bootstrap_file_writer=bootstrap_file_writer,
-        ),
-        template_content_builder=TemplateContentBuilder(),
-        pyproject_operation_builder=PyprojectOperationBuilder(
-            toml_section_merge_service=TomlSectionMergeService(),
-            bootstrap_file_writer=bootstrap_file_writer,
-        ),
-        bootstrap_file_writer=bootstrap_file_writer,
-        bootstrap_addons=(vscode_user_files_exclude_addon,),
-    )
-    project_bootstrap_service: ProjectBootstrapService = ProjectBootstrapService(
-        template_plan_builder=template_plan_builder,
-        bootstrap_file_writer=bootstrap_file_writer,
-    )
-    manifest_store: ProjectPolicyManifestStore = ProjectPolicyManifestStore(file_system)
-    project_index_store: ProjectIndexStore = ProjectIndexStore(
-        file_system=file_system,
-        manifest_store=manifest_store,
-        index_file_path=index_file_path,
-    )
-    operation_status_resolver: ProjectPolicyOperationStatusResolver = (
-        ProjectPolicyOperationStatusResolver()
-    )
-    report_renderer: ProjectPolicyReportRenderer = ProjectPolicyReportRenderer(
-        operation_status_resolver=operation_status_resolver,
-    )
-    return ProjectPolicyService(
-        project_root_resolver=ProjectRootResolver(),
-        project_bootstrap_service=project_bootstrap_service,
-        manifest_store=manifest_store,
-        project_index_store=project_index_store,
-        timestamp_service=FixedTimestampService(),  # type: ignore[arg-type]
-        operation_status_resolver=operation_status_resolver,
-        report_renderer=report_renderer,
-    )
-
-
-def bootstrap_and_record_project(
-    project_policy_service: ProjectPolicyService,
-    project_root_path: Path,
-) -> None:
-    context_file_path: Path = project_root_path / ".dev_tools" / "context.toml"
-    context_file_path.parent.mkdir(parents=True, exist_ok=True)
-    context_file_path.write_text('name = "test"\n', encoding="utf-8")
-    request: ProjectBootstrapRequest = ProjectBootstrapRequest(
-        project_root_path=project_root_path,
-        application_type=ApplicationType.FULL,
-        tool_names=(ToolName.ALL,),
-        strictness_level=StrictnessLevel.HIGH,
-        force=False,
-        dry_run=False,
-    )
-    plan = project_policy_service.project_bootstrap_service.bootstrap_project(request)
-    project_policy_service.record_initialized_project(request=request, plan=plan)
 
 
 def test_record_initialized_project_writes_manifest_and_index(tmp_path: Path) -> None:
@@ -220,6 +102,48 @@ def test_manifest_records_json_conflict_paths(tmp_path: Path) -> None:
     assert 'status = "conflict"' in manifest_content
     assert 'conflict_paths = ["scripts"]' in manifest_content
 
+    package_document: dict[str, object] = json.loads(
+        package_file_path.read_text(encoding="utf-8")
+    )
+    assert package_document == {"scripts": "custom-script-shape"}
+
+
+def test_policy_plan_reports_json_conflict_without_partial_write(
+    tmp_path: Path,
+) -> None:
+    project_root_path: Path = tmp_path / "sample_project"
+    project_root_path.mkdir()
+    package_file_path: Path = project_root_path / "package.json"
+    package_file_path.write_text(
+        json.dumps(
+            {
+                "scripts": "custom-script-shape",
+            }
+        ),
+        encoding="utf-8",
+    )
+    project_policy_service: ProjectPolicyService = build_project_policy_service(
+        index_file_path=tmp_path / "index" / "project_index.toml",
+        vscode_user_settings_file_path=tmp_path / "vscode" / "settings.json",
+    )
+    bootstrap_and_record_project(
+        project_policy_service=project_policy_service,
+        project_root_path=project_root_path,
+    )
+
+    result_text: str = project_policy_service.render_update_plan(
+        requested_project_root=project_root_path,
+        include_all_projects=False,
+    )
+    package_document: dict[str, object] = json.loads(
+        package_file_path.read_text(encoding="utf-8")
+    )
+
+    assert "package_json.typescript_tooling_defaults@1 [conflict]" in result_text
+    assert "action: conflict; status: conflict" in result_text
+    assert "conflicts: scripts" in result_text
+    assert package_document == {"scripts": "custom-script-shape"}
+
 
 def test_policy_plan_shows_revision_action_and_merge_details(tmp_path: Path) -> None:
     project_root_path: Path = tmp_path / "sample_project"
@@ -279,6 +203,77 @@ def test_apply_policy_updates_uses_global_index(tmp_path: Path) -> None:
     assert "[tool.uv]" in pyproject_content
     assert "[tool.ruff]" in pyproject_content
     assert pyproject_content.count("[project]") == 1
+
+
+def test_apply_policy_updates_force_overwrites_conflicting_managed_values(
+    tmp_path: Path,
+) -> None:
+    project_root_path: Path = tmp_path / "sample_project"
+    project_root_path.mkdir()
+    package_file_path: Path = project_root_path / "package.json"
+    package_file_path.write_text(
+        json.dumps(
+            {
+                "scripts": "custom-script-shape",
+            }
+        ),
+        encoding="utf-8",
+    )
+    project_policy_service: ProjectPolicyService = build_project_policy_service(
+        index_file_path=tmp_path / "index" / "project_index.toml",
+        vscode_user_settings_file_path=tmp_path / "vscode" / "settings.json",
+    )
+    bootstrap_and_record_project(
+        project_policy_service=project_policy_service,
+        project_root_path=project_root_path,
+    )
+
+    result_text: str = project_policy_service.apply_policy_updates(
+        requested_project_root=project_root_path,
+        include_all_projects=False,
+        force=True,
+    )
+    package_document: dict[str, object] = json.loads(
+        package_file_path.read_text(encoding="utf-8")
+    )
+    package_scripts: object = package_document["scripts"]
+
+    assert "Applied project policy updates" in result_text
+    assert isinstance(package_scripts, dict)
+    assert package_scripts["typecheck"] == "tsc --noEmit"
+
+
+def test_apply_policy_updates_force_overwrites_invalid_vscode_user_settings(
+    tmp_path: Path,
+) -> None:
+    project_root_path: Path = tmp_path / "sample_project"
+    vscode_user_settings_file_path: Path = tmp_path / "vscode" / "settings.json"
+    project_root_path.mkdir()
+    vscode_user_settings_file_path.parent.mkdir(parents=True)
+    vscode_user_settings_file_path.write_text("{", encoding="utf-8")
+    project_policy_service: ProjectPolicyService = build_project_policy_service(
+        index_file_path=tmp_path / "index" / "project_index.toml",
+        vscode_user_settings_file_path=vscode_user_settings_file_path,
+    )
+    bootstrap_and_record_project(
+        project_policy_service=project_policy_service,
+        project_root_path=project_root_path,
+    )
+
+    project_policy_service.apply_policy_updates(
+        requested_project_root=project_root_path,
+        include_all_projects=False,
+        force=True,
+    )
+    settings_document: dict[str, object] = json.loads(
+        vscode_user_settings_file_path.read_text(encoding="utf-8")
+    )
+    files_exclude_settings: object = settings_document[
+        VSCODE_FILES_EXCLUDE_SETTING_NAME
+    ]
+
+    assert isinstance(files_exclude_settings, dict)
+    assert files_exclude_settings["**/__pycache__"] is True
 
 
 def test_projects_doctor_marks_invalid_manifest(tmp_path: Path) -> None:

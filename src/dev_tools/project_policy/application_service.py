@@ -126,13 +126,15 @@ class ProjectPolicyService:
         self,
         requested_project_root: Path | None,
         include_all_projects: bool,
+        force: bool = False,
     ) -> str:
         manifests: tuple[ProjectPolicyManifest, ...] = self.load_manifests(
             requested_project_root=requested_project_root,
             include_all_projects=include_all_projects,
         )
         plan_entries: tuple[ProjectPolicyPlanEntry, ...] = self.build_plan_entries(
-            manifests
+            manifests=manifests,
+            force=force,
         )
         return self.report_renderer.render_update_plan(
             plan_entries=plan_entries,
@@ -143,6 +145,7 @@ class ProjectPolicyService:
         self,
         requested_project_root: Path | None,
         include_all_projects: bool,
+        force: bool = False,
     ) -> str:
         manifests: tuple[ProjectPolicyManifest, ...] = self.load_manifests(
             requested_project_root=requested_project_root,
@@ -154,6 +157,7 @@ class ProjectPolicyService:
             request: ProjectBootstrapRequest = self.build_bootstrap_request(
                 manifest=manifest,
                 dry_run=False,
+                force=force,
             )
             plan: ProjectBootstrapPlan = (
                 self.project_bootstrap_service.bootstrap_project(request)
@@ -233,6 +237,7 @@ class ProjectPolicyService:
     def build_plan_entries(
         self,
         manifests: tuple[ProjectPolicyManifest, ...],
+        force: bool = False,
     ) -> tuple[ProjectPolicyPlanEntry, ...]:
         plan_entries: list[ProjectPolicyPlanEntry] = []
 
@@ -240,7 +245,10 @@ class ProjectPolicyService:
             plan_entries.append(
                 ProjectPolicyPlanEntry(
                     manifest=manifest,
-                    plan=self.build_bootstrap_plan(manifest),
+                    plan=self.build_bootstrap_plan(
+                        manifest=manifest,
+                        force=force,
+                    ),
                 )
             )
 
@@ -249,10 +257,12 @@ class ProjectPolicyService:
     def build_bootstrap_plan(
         self,
         manifest: ProjectPolicyManifest,
+        force: bool = False,
     ) -> ProjectBootstrapPlan:
         request: ProjectBootstrapRequest = self.build_bootstrap_request(
             manifest=manifest,
             dry_run=True,
+            force=force,
         )
         return self.project_bootstrap_service.build_plan(request)
 
@@ -260,13 +270,14 @@ class ProjectPolicyService:
         self,
         manifest: ProjectPolicyManifest,
         dry_run: bool,
+        force: bool = False,
     ) -> ProjectBootstrapRequest:
         return ProjectBootstrapRequest(
             project_root_path=manifest.project_root_path,
             application_type=manifest.init_settings.application_type,
             tool_names=manifest.init_settings.tool_names,
             strictness_level=manifest.init_settings.strictness_level,
-            force=False,
+            force=force,
             dry_run=dry_run,
         )
 

@@ -39,6 +39,25 @@ class BootstrapFileWriter:
 
             resolved_target_file_path = target_file_path
 
+        if conflict_paths and resolved_target_file_path.exists() and not force:
+            operation_reason: str = reason
+            if operation_reason == "":
+                operation_reason = "conflicting existing values require --force"
+
+            return BootstrapFileOperation(
+                relative_file_path=relative_file_path,
+                action=BootstrapFileAction.CONFLICT,
+                content=None,
+                reason=operation_reason,
+                target_file_path=target_file_path,
+                display_path=display_path,
+                policy_id=policy_id,
+                policy_revision=policy_revision,
+                merge_strategy=merge_strategy,
+                preserved_paths=preserved_paths,
+                conflict_paths=conflict_paths,
+            )
+
         if not resolved_target_file_path.exists():
             return BootstrapFileOperation(
                 relative_file_path=relative_file_path,
@@ -57,15 +76,15 @@ class BootstrapFileWriter:
 
         current_content: str = resolved_target_file_path.read_text(encoding="utf-8")
         if current_content == content:
-            operation_reason: str = reason
-            if operation_reason == "":
-                operation_reason = "already up to date"
+            already_satisfied_reason: str = reason
+            if already_satisfied_reason == "":
+                already_satisfied_reason = "already up to date"
 
             return BootstrapFileOperation(
                 relative_file_path=relative_file_path,
                 action=BootstrapFileAction.SKIP,
                 content=content,
-                reason=operation_reason,
+                reason=already_satisfied_reason,
                 target_file_path=target_file_path,
                 display_path=display_path,
                 policy_id=policy_id,
@@ -109,7 +128,10 @@ class BootstrapFileWriter:
 
     def apply_plan(self, project_root_path: Path, plan: ProjectBootstrapPlan) -> None:
         for operation in plan.operations:
-            if operation.action == BootstrapFileAction.SKIP:
+            if operation.action in (
+                BootstrapFileAction.SKIP,
+                BootstrapFileAction.CONFLICT,
+            ):
                 continue
 
             if operation.content is None:

@@ -56,6 +56,7 @@ class BootstrapFileAction(StrEnum):
     CREATE = "create"
     UPDATE = "update"
     SKIP = "skip"
+    CONFLICT = "conflict"
 
 
 class BootstrapFileOperation(BaseModel):

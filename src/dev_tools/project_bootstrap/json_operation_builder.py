@@ -50,7 +50,7 @@ class JsonOperationBuilder:
             if target_file_path.exists() and not force:
                 return BootstrapFileOperation(
                     relative_file_path=relative_file_path,
-                    action=BootstrapFileAction.SKIP,
+                    action=BootstrapFileAction.CONFLICT,
                     content=None,
                     reason="existing JSON is not safe to merge",
                     policy_id=policy_id,

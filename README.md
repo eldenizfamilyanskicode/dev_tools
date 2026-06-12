@@ -79,6 +79,8 @@ dev-tools projects doctor
 dev-tools policies status
 dev-tools policies plan --all
 dev-tools policies apply --project-root /absolute/project/path
+dev-tools policies plan --project-root /absolute/project/path --force
+dev-tools policies apply --project-root /absolute/project/path --force
 ```
 
 ## CLI extension model
@@ -198,6 +200,11 @@ dev-tools policies status
 dev-tools policies plan --all
 dev-tools policies apply --all
 ```
+
+When a managed JSON/TOML shape conflicts with an existing project value, the
+default plan reports the conflict and skips that target file. Use `--force` on
+`policies plan` to preview overwrite behavior, and `--force` on `policies apply`
+only when overwriting conflicting managed values is intentional.
 
 ## Workflow
 
