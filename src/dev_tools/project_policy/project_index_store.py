@@ -4,6 +4,8 @@ import os
 import tomllib
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from dev_tools.project_policy.constants import (
     GLOBAL_INDEX_FILE_NAME,
     GLOBAL_STATE_DIRECTORY_NAME,
@@ -162,6 +164,33 @@ class ProjectIndexStore:
             )
 
         if not registered_project.manifest_file_path.exists():
+            return registered_project.model_copy(
+                update={
+                    "last_seen_at": timestamp,
+                    "status": RegisteredProjectStatus.INVALID_MANIFEST,
+                }
+            )
+
+        try:
+            manifest: ProjectPolicyManifest = self.manifest_store.load_manifest(
+                registered_project.project_root_path
+            )
+        except (
+            FileNotFoundError,
+            NotADirectoryError,
+            tomllib.TOMLDecodeError,
+            TypeError,
+            ValueError,
+            ValidationError,
+        ):
+            return registered_project.model_copy(
+                update={
+                    "last_seen_at": timestamp,
+                    "status": RegisteredProjectStatus.INVALID_MANIFEST,
+                }
+            )
+
+        if manifest.project_root_path != registered_project.project_root_path.resolve():
             return registered_project.model_copy(
                 update={
                     "last_seen_at": timestamp,

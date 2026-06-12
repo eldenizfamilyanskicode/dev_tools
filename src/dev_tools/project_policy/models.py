@@ -19,6 +19,7 @@ class ProjectPolicyProjectId(BaseTypedId):
 
 class PolicyApplicationStatus(StrEnum):
     APPLIED = "applied"
+    APPLIED_WITH_SKIPS = "applied_with_skips"
     ALREADY_SATISFIED = "already_satisfied"
     SKIPPED_EXISTING = "skipped_existing"
     CONFLICT = "conflict"
@@ -47,6 +48,9 @@ class ProjectPolicyRecord(BaseModel):
     merge_strategy: str
     target_files: tuple[str, ...]
     reason: str = ""
+    applied_paths: tuple[str, ...] = ()
+    preserved_paths: tuple[str, ...] = ()
+    conflict_paths: tuple[str, ...] = ()
     content_hash: str | None = None
     applied_at: str | None = None
 

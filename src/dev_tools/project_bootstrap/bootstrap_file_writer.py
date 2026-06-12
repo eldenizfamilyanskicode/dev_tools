@@ -26,6 +26,10 @@ class BootstrapFileWriter:
         policy_id: str | None = None,
         policy_revision: int | None = None,
         merge_strategy: str = "whole_file",
+        applied_paths: tuple[str, ...] = (),
+        preserved_paths: tuple[str, ...] = (),
+        conflict_paths: tuple[str, ...] = (),
+        reason: str = "",
     ) -> BootstrapFileOperation:
         resolved_target_file_path: Path = project_root_path / relative_file_path
 
@@ -45,20 +49,31 @@ class BootstrapFileWriter:
                 policy_id=policy_id,
                 policy_revision=policy_revision,
                 merge_strategy=merge_strategy,
+                applied_paths=applied_paths,
+                preserved_paths=preserved_paths,
+                conflict_paths=conflict_paths,
+                reason=reason,
             )
 
         current_content: str = resolved_target_file_path.read_text(encoding="utf-8")
         if current_content == content:
+            operation_reason: str = reason
+            if operation_reason == "":
+                operation_reason = "already up to date"
+
             return BootstrapFileOperation(
                 relative_file_path=relative_file_path,
                 action=BootstrapFileAction.SKIP,
                 content=content,
-                reason="already up to date",
+                reason=operation_reason,
                 target_file_path=target_file_path,
                 display_path=display_path,
                 policy_id=policy_id,
                 policy_revision=policy_revision,
                 merge_strategy=merge_strategy,
+                applied_paths=applied_paths,
+                preserved_paths=preserved_paths,
+                conflict_paths=conflict_paths,
             )
 
         if create_only and not force:
@@ -72,6 +87,9 @@ class BootstrapFileWriter:
                 policy_id=policy_id,
                 policy_revision=policy_revision,
                 merge_strategy=merge_strategy,
+                applied_paths=applied_paths,
+                preserved_paths=preserved_paths,
+                conflict_paths=conflict_paths,
             )
 
         return BootstrapFileOperation(
@@ -83,6 +101,10 @@ class BootstrapFileWriter:
             policy_id=policy_id,
             policy_revision=policy_revision,
             merge_strategy=merge_strategy,
+            applied_paths=applied_paths,
+            preserved_paths=preserved_paths,
+            conflict_paths=conflict_paths,
+            reason=reason,
         )
 
     def apply_plan(self, project_root_path: Path, plan: ProjectBootstrapPlan) -> None:

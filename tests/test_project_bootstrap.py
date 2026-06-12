@@ -15,6 +15,7 @@ from dev_tools.project_bootstrap.constants import (
     VSCODE_GLOBAL_FILES_EXCLUDE_PATTERNS,
 )
 from dev_tools.project_bootstrap.json_merge_service import JsonMergeService
+from dev_tools.project_bootstrap.json_operation_builder import JsonOperationBuilder
 from dev_tools.project_bootstrap.managed_block_service import ManagedBlockService
 from dev_tools.project_bootstrap.models import (
     ApplicationType,
@@ -66,7 +67,10 @@ def build_project_bootstrap_service(
     )
     template_plan_builder: TemplatePlanBuilder = TemplatePlanBuilder(
         managed_block_service=ManagedBlockService(),
-        json_merge_service=json_merge_service,
+        json_operation_builder=JsonOperationBuilder(
+            json_merge_service=json_merge_service,
+            bootstrap_file_writer=bootstrap_file_writer,
+        ),
         template_content_builder=TemplateContentBuilder(),
         pyproject_operation_builder=PyprojectOperationBuilder(
             toml_section_merge_service=TomlSectionMergeService(),
@@ -232,6 +236,112 @@ def test_vscode_extensions_json_merge_avoids_duplicates(
     assert recommendations.count("ms-python.python") == 1
     assert "charliermarsh.ruff" in recommendations
     assert "esbenp.prettier-vscode" in recommendations
+
+
+def test_package_json_merge_preserves_existing_project_values(
+    tmp_path: Path,
+) -> None:
+    package_file_path: Path = tmp_path / "package.json"
+    package_file_path.write_text(
+        json.dumps(
+            {
+                "name": "custom-package",
+                "version": "9.9.9",
+                "scripts": {
+                    "typecheck": "custom-typecheck",
+                },
+                "devDependencies": {
+                    "typescript": "5.0.0",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    bootstrap_project(
+        tmp_path,
+        application_type=ApplicationType.TYPESCRIPT,
+        tool_names=(ToolName.PRETTIER,),
+    )
+    package_document: dict[str, Any] = read_json(package_file_path)
+    package_scripts: dict[str, str] = package_document["scripts"]
+    package_development_dependencies: dict[str, str] = package_document[
+        "devDependencies"
+    ]
+
+    assert package_document["name"] == "custom-package"
+    assert package_document["version"] == "9.9.9"
+    assert package_scripts["typecheck"] == "custom-typecheck"
+    assert package_scripts["format"] == "prettier --write ."
+    assert package_development_dependencies["typescript"] == "5.0.0"
+    assert package_development_dependencies["prettier"] == "^3.5.0"
+
+
+def test_package_json_force_overwrites_managed_values(tmp_path: Path) -> None:
+    package_file_path: Path = tmp_path / "package.json"
+    package_file_path.write_text(
+        json.dumps(
+            {
+                "name": "custom-package",
+                "version": "9.9.9",
+                "scripts": {
+                    "typecheck": "custom-typecheck",
+                },
+                "devDependencies": {
+                    "typescript": "5.0.0",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    bootstrap_project(
+        tmp_path,
+        application_type=ApplicationType.TYPESCRIPT,
+        tool_names=(ToolName.PRETTIER,),
+        force=True,
+    )
+    package_document: dict[str, Any] = read_json(package_file_path)
+    package_scripts: dict[str, str] = package_document["scripts"]
+    package_development_dependencies: dict[str, str] = package_document[
+        "devDependencies"
+    ]
+
+    assert package_document["name"] == tmp_path.name.replace("_", "-").lower()
+    assert package_document["version"] == "0.1.0"
+    assert package_scripts["typecheck"] == "tsc --noEmit"
+    assert package_development_dependencies["typescript"] == "^5.8.0"
+
+
+def test_tsconfig_merge_preserves_existing_compiler_options(tmp_path: Path) -> None:
+    tsconfig_file_path: Path = tmp_path / "tsconfig.json"
+    tsconfig_file_path.write_text(
+        json.dumps(
+            {
+                "compilerOptions": {
+                    "strict": False,
+                    "module": "CommonJS",
+                },
+                "include": ["app"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    bootstrap_project(
+        tmp_path,
+        application_type=ApplicationType.TYPESCRIPT,
+        tool_names=(ToolName.PRETTIER,),
+    )
+    tsconfig_document: dict[str, Any] = read_json(tsconfig_file_path)
+    compiler_options: dict[str, Any] = tsconfig_document["compilerOptions"]
+    include_paths: list[str] = tsconfig_document["include"]
+
+    assert compiler_options["strict"] is False
+    assert compiler_options["module"] == "CommonJS"
+    assert compiler_options["noEmit"] is True
+    assert compiler_options["skipLibCheck"] is True
+    assert include_paths == ["app", "src"]
 
 
 def test_vscode_user_settings_global_files_exclude_is_created(

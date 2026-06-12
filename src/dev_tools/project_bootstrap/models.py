@@ -70,6 +70,9 @@ class BootstrapFileOperation(BaseModel):
     policy_id: str | None = None
     policy_revision: int | None = None
     merge_strategy: str = "whole_file"
+    applied_paths: tuple[str, ...] = ()
+    preserved_paths: tuple[str, ...] = ()
+    conflict_paths: tuple[str, ...] = ()
 
 
 class ProjectBootstrapPlan(BaseModel):

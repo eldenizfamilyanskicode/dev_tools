@@ -118,6 +118,18 @@ class ProjectPolicyManifestStore:
             merge_strategy=self.get_string(policy_document, "merge_strategy"),
             target_files=self.get_string_items(policy_document, "target_files"),
             reason=self.get_optional_string(policy_document, "reason") or "",
+            applied_paths=self.get_optional_string_items(
+                policy_document,
+                "applied_paths",
+            ),
+            preserved_paths=self.get_optional_string_items(
+                policy_document,
+                "preserved_paths",
+            ),
+            conflict_paths=self.get_optional_string_items(
+                policy_document,
+                "conflict_paths",
+            ),
             content_hash=raw_content_hash,
             applied_at=raw_applied_at,
         )
@@ -178,6 +190,24 @@ class ProjectPolicyManifestStore:
                 f"{self.serialize_string_list(policy_record.target_files)}"
             )
             lines.append(f'reason = "{self.escape_string(policy_record.reason)}"')
+
+            if policy_record.applied_paths:
+                lines.append(
+                    "applied_paths = "
+                    f"{self.serialize_string_list(policy_record.applied_paths)}"
+                )
+
+            if policy_record.preserved_paths:
+                lines.append(
+                    "preserved_paths = "
+                    f"{self.serialize_string_list(policy_record.preserved_paths)}"
+                )
+
+            if policy_record.conflict_paths:
+                lines.append(
+                    "conflict_paths = "
+                    f"{self.serialize_string_list(policy_record.conflict_paths)}"
+                )
 
             if policy_record.content_hash is not None:
                 lines.append(
@@ -296,6 +326,18 @@ class ProjectPolicyManifestStore:
             string_items.append(raw_item)
 
         return tuple(string_items)
+
+    def get_optional_string_items(
+        self,
+        document: dict[str, object],
+        key: str,
+    ) -> tuple[str, ...]:
+        value: object | None = document.get(key)
+
+        if value is None:
+            return ()
+
+        return self.get_string_items(document, key)
 
     def serialize_string_list(self, values: tuple[str, ...]) -> str:
         serialized_values: list[str] = []

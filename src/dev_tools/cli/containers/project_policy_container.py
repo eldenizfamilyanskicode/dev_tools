@@ -11,7 +11,11 @@ from dev_tools.cli.containers.project_context_container import ProjectContextCon
 from dev_tools.cli.containers.shared_container import SharedContainer
 from dev_tools.project_policy.application_service import ProjectPolicyService
 from dev_tools.project_policy.manifest_store import ProjectPolicyManifestStore
+from dev_tools.project_policy.operation_status_resolver import (
+    ProjectPolicyOperationStatusResolver,
+)
 from dev_tools.project_policy.project_index_store import ProjectIndexStore
+from dev_tools.project_policy.report_renderer import ProjectPolicyReportRenderer
 from dev_tools.project_policy.timestamp_service import TimestampService
 
 
@@ -43,6 +47,11 @@ class ProjectPolicyContainer(containers.DeclarativeContainer):
         file_system=shared.file_system,
         manifest_store=manifest_store,
     )
+    operation_status_resolver = Factory(ProjectPolicyOperationStatusResolver)
+    report_renderer = Factory(
+        ProjectPolicyReportRenderer,
+        operation_status_resolver=operation_status_resolver,
+    )
     project_policy_service = Factory(
         ProjectPolicyService,
         project_root_resolver=project_context.project_root_resolver,
@@ -50,4 +59,6 @@ class ProjectPolicyContainer(containers.DeclarativeContainer):
         manifest_store=manifest_store,
         project_index_store=project_index_store,
         timestamp_service=timestamp_service,
+        operation_status_resolver=operation_status_resolver,
+        report_renderer=report_renderer,
     )

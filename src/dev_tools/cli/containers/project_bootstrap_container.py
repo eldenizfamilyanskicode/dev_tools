@@ -10,6 +10,7 @@ from dev_tools.project_bootstrap.addons.vscode_user_files_exclude_addon import (
 from dev_tools.project_bootstrap.application_service import ProjectBootstrapService
 from dev_tools.project_bootstrap.bootstrap_file_writer import BootstrapFileWriter
 from dev_tools.project_bootstrap.json_merge_service import JsonMergeService
+from dev_tools.project_bootstrap.json_operation_builder import JsonOperationBuilder
 from dev_tools.project_bootstrap.managed_block_service import ManagedBlockService
 from dev_tools.project_bootstrap.pyproject_operation_builder import (
     PyprojectOperationBuilder,
@@ -50,6 +51,11 @@ class ProjectBootstrapContainer(containers.DeclarativeContainer):
         toml_section_merge_service=toml_section_merge_service,
         bootstrap_file_writer=bootstrap_file_writer,
     )
+    json_operation_builder = Factory(
+        JsonOperationBuilder,
+        json_merge_service=json_merge_service,
+        bootstrap_file_writer=bootstrap_file_writer,
+    )
 
     bootstrap_addons = List(
         vscode_user_files_exclude_addon,
@@ -58,7 +64,7 @@ class ProjectBootstrapContainer(containers.DeclarativeContainer):
     template_plan_builder = Factory(
         TemplatePlanBuilder,
         managed_block_service=managed_block_service,
-        json_merge_service=json_merge_service,
+        json_operation_builder=json_operation_builder,
         template_content_builder=template_content_builder,
         pyproject_operation_builder=pyproject_operation_builder,
         bootstrap_file_writer=bootstrap_file_writer,

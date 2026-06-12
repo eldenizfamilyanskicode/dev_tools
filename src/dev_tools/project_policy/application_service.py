@@ -1,21 +1,20 @@
 from __future__ import annotations
 
+import tomllib
 from hashlib import sha256
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from dev_tools.project_bootstrap.application_service import ProjectBootstrapService
 from dev_tools.project_bootstrap.models import (
-    BootstrapFileAction,
     BootstrapFileOperation,
     ProjectBootstrapPlan,
     ProjectBootstrapRequest,
-    ToolName,
 )
 from dev_tools.project_context.project_root_resolver import ProjectRootResolver
-from dev_tools.project_policy.constants import (
-    POLICY_MANIFEST_VERSION,
-)
+from dev_tools.project_policy.constants import POLICY_MANIFEST_VERSION
 from dev_tools.project_policy.manifest_store import ProjectPolicyManifestStore
 from dev_tools.project_policy.models import (
     PolicyApplicationStatus,
@@ -26,7 +25,15 @@ from dev_tools.project_policy.models import (
     ProjectPolicyRecord,
     RegisteredProjectStatus,
 )
+from dev_tools.project_policy.operation_status_resolver import (
+    ProjectPolicyOperationStatusResolver,
+)
 from dev_tools.project_policy.project_index_store import ProjectIndexStore
+from dev_tools.project_policy.report_renderer import (
+    ProjectPolicyApplyResult,
+    ProjectPolicyPlanEntry,
+    ProjectPolicyReportRenderer,
+)
 from dev_tools.project_policy.timestamp_service import TimestampService
 
 
@@ -38,12 +45,16 @@ class ProjectPolicyService:
         manifest_store: ProjectPolicyManifestStore,
         project_index_store: ProjectIndexStore,
         timestamp_service: TimestampService,
+        operation_status_resolver: ProjectPolicyOperationStatusResolver,
+        report_renderer: ProjectPolicyReportRenderer,
     ) -> None:
         self.project_root_resolver = project_root_resolver
         self.project_bootstrap_service = project_bootstrap_service
         self.manifest_store = manifest_store
         self.project_index_store = project_index_store
         self.timestamp_service = timestamp_service
+        self.operation_status_resolver = operation_status_resolver
+        self.report_renderer = report_renderer
 
     def record_initialized_project(
         self,
@@ -89,26 +100,10 @@ class ProjectPolicyService:
 
     def render_registered_projects(self, refresh: bool) -> str:
         project_index: ProjectPolicyIndex = self.load_project_index(refresh=refresh)
-        lines: list[str] = []
-        lines.append("Registered dev-tools projects")
-        lines.append("")
-        lines.append(f"Index: {self.project_index_store.resolve_index_file_path()}")
-
-        if not project_index.projects:
-            lines.append("No projects registered.")
-            return "\n".join(lines).rstrip() + "\n"
-
-        for registered_project in project_index.projects:
-            lines.append(
-                "- "
-                f"{registered_project.status.value}: "
-                f"{registered_project.project_root_path}"
-            )
-            lines.append(f"  project_id: {registered_project.project_id}")
-            lines.append(f"  manifest: {registered_project.manifest_file_path}")
-            lines.append(f"  last_seen_at: {registered_project.last_seen_at}")
-
-        return "\n".join(lines).rstrip() + "\n"
+        return self.report_renderer.render_registered_projects(
+            project_index=project_index,
+            index_file_path=self.project_index_store.resolve_index_file_path(),
+        )
 
     def render_policy_status(
         self,
@@ -119,38 +114,13 @@ class ProjectPolicyService:
             requested_project_root=requested_project_root,
             include_all_projects=include_all_projects,
         )
-        lines: list[str] = []
-        lines.append("Project policy status")
-
-        if not manifests:
-            lines.append("")
-            lines.append("No active registered projects.")
-            return "\n".join(lines).rstrip() + "\n"
-
-        for manifest in manifests:
-            lines.append("")
-            lines.append(str(manifest.project_root_path))
-            lines.append(f"  project_id: {manifest.project_id}")
-            lines.append(f"  initialized_at: {manifest.initialized_at}")
-            lines.append(f"  updated_at: {manifest.updated_at}")
-            lines.append(
-                f"  dev_tools_version_at_init: {manifest.dev_tools_version_at_init}"
-            )
-            lines.append(
-                "  init: "
-                f"{manifest.init_settings.application_type.value}, "
-                f"{self.format_tool_names(manifest.init_settings.tool_names)}, "
-                f"{manifest.init_settings.strictness_level.value}"
-            )
-
-            for policy_record in manifest.policies:
-                lines.append(
-                    "  - "
-                    f"{policy_record.policy_id}@{policy_record.policy_revision}: "
-                    f"{policy_record.status.value}"
-                )
-
-        return "\n".join(lines).rstrip() + "\n"
+        plan_entries: tuple[ProjectPolicyPlanEntry, ...] = self.build_plan_entries(
+            manifests
+        )
+        return self.report_renderer.render_policy_status(
+            plan_entries=plan_entries,
+            project_index=self.load_project_index_for_report(include_all_projects),
+        )
 
     def render_update_plan(
         self,
@@ -161,21 +131,13 @@ class ProjectPolicyService:
             requested_project_root=requested_project_root,
             include_all_projects=include_all_projects,
         )
-        lines: list[str] = []
-        lines.append("Project policy update plan")
-
-        if not manifests:
-            lines.append("")
-            lines.append("No active registered projects.")
-            return "\n".join(lines).rstrip() + "\n"
-
-        for manifest in manifests:
-            plan: ProjectBootstrapPlan = self.build_bootstrap_plan(manifest)
-            lines.append("")
-            lines.append(str(manifest.project_root_path))
-            lines.append(self.project_bootstrap_service.render_plan(plan).rstrip())
-
-        return "\n".join(lines).rstrip() + "\n"
+        plan_entries: tuple[ProjectPolicyPlanEntry, ...] = self.build_plan_entries(
+            manifests
+        )
+        return self.report_renderer.render_update_plan(
+            plan_entries=plan_entries,
+            project_index=self.load_project_index_for_report(include_all_projects),
+        )
 
     def apply_policy_updates(
         self,
@@ -186,13 +148,7 @@ class ProjectPolicyService:
             requested_project_root=requested_project_root,
             include_all_projects=include_all_projects,
         )
-        lines: list[str] = []
-        lines.append("Applied project policy updates")
-
-        if not manifests:
-            lines.append("")
-            lines.append("No active registered projects.")
-            return "\n".join(lines).rstrip() + "\n"
+        apply_results: list[ProjectPolicyApplyResult] = []
 
         for manifest in manifests:
             request: ProjectBootstrapRequest = self.build_bootstrap_request(
@@ -209,23 +165,18 @@ class ProjectPolicyService:
             manifest_file_path: Path = self.manifest_store.build_manifest_file_path(
                 updated_manifest.project_root_path
             )
-            applied_policy_count: int = self.count_operations(
-                plan,
-                BootstrapFileAction.CREATE,
-            ) + self.count_operations(
-                plan,
-                BootstrapFileAction.UPDATE,
-            )
-            lines.append("")
-            lines.append(str(updated_manifest.project_root_path))
-            lines.append(f"  manifest: {manifest_file_path}")
-            lines.append(f"  applied policies: {applied_policy_count}")
-            lines.append(
-                "  skipped policies: "
-                f"{self.count_operations(plan, BootstrapFileAction.SKIP)}"
+            apply_results.append(
+                ProjectPolicyApplyResult(
+                    manifest=updated_manifest,
+                    manifest_file_path=manifest_file_path,
+                    plan=plan,
+                )
             )
 
-        return "\n".join(lines).rstrip() + "\n"
+        return self.report_renderer.render_apply_results(
+            apply_results=tuple(apply_results),
+            project_index=self.load_project_index_for_report(include_all_projects),
+        )
 
     def load_manifests(
         self,
@@ -240,11 +191,21 @@ class ProjectPolicyService:
                 if registered_project.status != RegisteredProjectStatus.ACTIVE:
                     continue
 
-                manifests.append(
-                    self.manifest_store.load_manifest(
-                        registered_project.project_root_path
+                try:
+                    manifests.append(
+                        self.manifest_store.load_manifest(
+                            registered_project.project_root_path
+                        )
                     )
-                )
+                except (
+                    FileNotFoundError,
+                    NotADirectoryError,
+                    tomllib.TOMLDecodeError,
+                    TypeError,
+                    ValueError,
+                    ValidationError,
+                ):
+                    continue
 
             return tuple(manifests)
 
@@ -259,6 +220,31 @@ class ProjectPolicyService:
 
         timestamp: str = self.timestamp_service.build_current_timestamp()
         return self.project_index_store.refresh_project_statuses(timestamp)
+
+    def load_project_index_for_report(
+        self,
+        include_all_projects: bool,
+    ) -> ProjectPolicyIndex | None:
+        if not include_all_projects:
+            return None
+
+        return self.load_project_index(refresh=False)
+
+    def build_plan_entries(
+        self,
+        manifests: tuple[ProjectPolicyManifest, ...],
+    ) -> tuple[ProjectPolicyPlanEntry, ...]:
+        plan_entries: list[ProjectPolicyPlanEntry] = []
+
+        for manifest in manifests:
+            plan_entries.append(
+                ProjectPolicyPlanEntry(
+                    manifest=manifest,
+                    plan=self.build_bootstrap_plan(manifest),
+                )
+            )
+
+        return tuple(plan_entries)
 
     def build_bootstrap_plan(
         self,
@@ -295,7 +281,9 @@ class ProjectPolicyService:
             if operation.policy_id is None or operation.policy_revision is None:
                 continue
 
-            status: PolicyApplicationStatus = self.resolve_operation_status(operation)
+            status: PolicyApplicationStatus = (
+                self.operation_status_resolver.resolve_operation_status(operation)
+            )
             applied_at: str | None = timestamp
 
             if status in (
@@ -312,27 +300,15 @@ class ProjectPolicyService:
                     merge_strategy=operation.merge_strategy,
                     target_files=(self.format_operation_file_path(operation),),
                     reason=operation.reason,
+                    applied_paths=operation.applied_paths,
+                    preserved_paths=operation.preserved_paths,
+                    conflict_paths=operation.conflict_paths,
                     content_hash=self.build_content_hash(operation.content),
                     applied_at=applied_at,
                 )
             )
 
         return tuple(policy_records)
-
-    def resolve_operation_status(
-        self,
-        operation: BootstrapFileOperation,
-    ) -> PolicyApplicationStatus:
-        if operation.action in (BootstrapFileAction.CREATE, BootstrapFileAction.UPDATE):
-            return PolicyApplicationStatus.APPLIED
-
-        if operation.reason == "already up to date":
-            return PolicyApplicationStatus.ALREADY_SATISFIED
-
-        if "not safe to merge" in operation.reason:
-            return PolicyApplicationStatus.CONFLICT
-
-        return PolicyApplicationStatus.SKIPPED_EXISTING
 
     def build_content_hash(self, content: str | None) -> str | None:
         if content is None:
@@ -360,29 +336,8 @@ class ProjectPolicyService:
         except PackageNotFoundError:
             return "unknown"
 
-    def count_operations(
-        self,
-        plan: ProjectBootstrapPlan,
-        action: BootstrapFileAction,
-    ) -> int:
-        operation_count: int = 0
-
-        for operation in plan.operations:
-            if operation.action == action:
-                operation_count = operation_count + 1
-
-        return operation_count
-
     def format_operation_file_path(self, operation: BootstrapFileOperation) -> str:
         if operation.display_path is not None:
             return operation.display_path
 
         return operation.relative_file_path.as_posix()
-
-    def format_tool_names(self, tool_names: tuple[ToolName, ...]) -> str:
-        formatted_tool_names: list[str] = []
-
-        for tool_name in tool_names:
-            formatted_tool_names.append(tool_name.value)
-
-        return ", ".join(formatted_tool_names)

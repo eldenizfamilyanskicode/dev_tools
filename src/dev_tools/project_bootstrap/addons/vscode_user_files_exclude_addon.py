@@ -12,6 +12,7 @@ from dev_tools.project_bootstrap.constants import (
     VSCODE_USER_SETTINGS_DISPLAY_PATH,
 )
 from dev_tools.project_bootstrap.json_merge_service import (
+    JsonMergeResult,
     JsonMergeService,
     JsonObject,
 )
@@ -51,9 +52,10 @@ class VsCodeUserFilesExcludeAddon:
             current_content = settings_file_path.read_text(encoding="utf-8")
 
         try:
-            content: str = self.json_merge_service.merge_json_content(
+            merge_result: JsonMergeResult = self.json_merge_service.build_merge_result(
                 current_content=current_content,
                 managed_data=self.build_managed_settings_data(),
+                overwrite_existing_values=False,
             )
         except ValueError:
             operations.append(
@@ -67,6 +69,7 @@ class VsCodeUserFilesExcludeAddon:
                     policy_id=POLICY_VSCODE_USER_FILES_EXCLUDE_ID,
                     policy_revision=POLICY_VSCODE_USER_FILES_EXCLUDE_REVISION,
                     merge_strategy="json_merge",
+                    conflict_paths=("$",),
                 )
             )
             return
@@ -74,7 +77,7 @@ class VsCodeUserFilesExcludeAddon:
         operation: BootstrapFileOperation = self.bootstrap_file_writer.build_operation(
             project_root_path=request.project_root_path,
             relative_file_path=Path(VSCODE_SETTINGS_FILE_NAME),
-            content=content,
+            content=merge_result.content,
             force=False,
             create_only=False,
             target_file_path=settings_file_path,
@@ -82,6 +85,10 @@ class VsCodeUserFilesExcludeAddon:
             policy_id=POLICY_VSCODE_USER_FILES_EXCLUDE_ID,
             policy_revision=POLICY_VSCODE_USER_FILES_EXCLUDE_REVISION,
             merge_strategy="json_merge",
+            applied_paths=merge_result.applied_paths,
+            preserved_paths=merge_result.preserved_paths,
+            conflict_paths=merge_result.conflict_paths,
+            reason=self.json_merge_service.build_merge_reason(merge_result),
         )
         operations.append(operation)
 

@@ -21,16 +21,12 @@ from dev_tools.project_bootstrap.constants import (
     POLICY_VSCODE_WORKSPACE_SETTINGS_ID,
     POLICY_VSCODE_WORKSPACE_SETTINGS_REVISION,
 )
-from dev_tools.project_bootstrap.json_merge_service import (
-    JsonArray,
-    JsonMergeService,
-    JsonObject,
-)
+from dev_tools.project_bootstrap.json_merge_service import JsonArray, JsonObject
+from dev_tools.project_bootstrap.json_operation_builder import JsonOperationBuilder
 from dev_tools.project_bootstrap.managed_block_service import ManagedBlockService
 from dev_tools.project_bootstrap.models import (
     ApplicationType,
     BootstrapAddon,
-    BootstrapFileAction,
     BootstrapFileOperation,
     ProjectBootstrapPlan,
     ProjectBootstrapRequest,
@@ -50,14 +46,14 @@ class TemplatePlanBuilder:
     def __init__(
         self,
         managed_block_service: ManagedBlockService,
-        json_merge_service: JsonMergeService,
+        json_operation_builder: JsonOperationBuilder,
         template_content_builder: TemplateContentBuilder,
         pyproject_operation_builder: PyprojectOperationBuilder,
         bootstrap_file_writer: BootstrapFileWriter,
         bootstrap_addons: Sequence[BootstrapAddon] | None = None,
     ) -> None:
         self.managed_block_service = managed_block_service
-        self.json_merge_service = json_merge_service
+        self.json_operation_builder = json_operation_builder
         self.template_content_builder = template_content_builder
         self.pyproject_operation_builder = pyproject_operation_builder
         self.bootstrap_file_writer = bootstrap_file_writer
@@ -349,45 +345,17 @@ class TemplatePlanBuilder:
         policy_revision: int | None = None,
         merge_strategy: str = "json_merge",
     ) -> None:
-        target_file_path: Path = project_root_path / relative_file_path
-        current_content: str = ""
-
-        if target_file_path.exists():
-            current_content = target_file_path.read_text(encoding="utf-8")
-
-        try:
-            content: str = self.json_merge_service.merge_json_content(
-                current_content=current_content,
-                managed_data=managed_data,
-            )
-        except ValueError:
-            if target_file_path.exists() and not force:
-                operations.append(
-                    BootstrapFileOperation(
-                        relative_file_path=relative_file_path,
-                        action=BootstrapFileAction.SKIP,
-                        content=None,
-                        reason="existing JSON is not safe to merge",
-                        policy_id=policy_id,
-                        policy_revision=policy_revision,
-                        merge_strategy=merge_strategy,
-                    )
-                )
-                return
-
-            content = self.json_merge_service.dump_json(managed_data)
-
-        self.add_text_operation(
-            operations=operations,
+        operation: BootstrapFileOperation = self.json_operation_builder.build_operation(
             project_root_path=project_root_path,
             relative_file_path=relative_file_path,
-            content=content,
+            managed_data=managed_data,
             force=force,
             create_only=create_only,
             policy_id=policy_id,
             policy_revision=policy_revision,
             merge_strategy=merge_strategy,
         )
+        operations.append(operation)
 
     def add_text_operation(
         self,
