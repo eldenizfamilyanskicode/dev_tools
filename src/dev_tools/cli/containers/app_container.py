@@ -5,6 +5,7 @@ from dependency_injector.providers import Container
 
 from dev_tools.cli.containers.cli_container import CliContainer
 from dev_tools.cli.containers.export_context_container import ExportContextContainer
+from dev_tools.cli.containers.global_cli_container import GlobalCliContainer
 from dev_tools.cli.containers.include_generation_container import (
     IncludeGenerationContainer,
 )
@@ -65,6 +66,11 @@ class AppContainer(containers.DeclarativeContainer):
         project_context=project_context,
     )
 
+    global_cli: GlobalCliContainer = Container(  # pyright: ignore[reportAssignmentType]
+        GlobalCliContainer,
+        shared=shared,
+    )
+
     cli: CliContainer = Container(  # pyright: ignore[reportAssignmentType]
         CliContainer,
         project_init=project_init,
@@ -72,4 +78,5 @@ class AppContainer(containers.DeclarativeContainer):
         include_generation=include_generation,
         tree_generation=tree_generation,
         export_context=export_context,
+        global_cli=global_cli,
     )

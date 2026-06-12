@@ -11,6 +11,7 @@ from dependency_injector.providers import (
 from dev_tools.cli.application import DevToolsCliApplication
 from dev_tools.cli.argument_parser_factory import CliArgumentParserFactory
 from dev_tools.cli.containers.export_context_container import ExportContextContainer
+from dev_tools.cli.containers.global_cli_container import GlobalCliContainer
 from dev_tools.cli.containers.include_generation_container import (
     IncludeGenerationContainer,
 )
@@ -20,6 +21,7 @@ from dev_tools.cli.containers.tree_generation_container import TreeGenerationCon
 from dev_tools.cli.menu_runner import InteractiveMenuRunner
 from dev_tools.cli.shared_arguments import CliArgumentReader, CliSharedArgumentRegistrar
 from dev_tools.export_context.cli import ExportContextCliContribution
+from dev_tools.global_cli.cli import GlobalCliCliContribution
 from dev_tools.include_generation.cli import IncludeGenerationCliContribution
 from dev_tools.project_init.cli import ProjectInitCliContribution
 from dev_tools.project_policy.cli import ProjectPolicyCliContribution
@@ -37,6 +39,8 @@ class CliContainer(containers.DeclarativeContainer):
     tree_generation = DependenciesContainer()  # pyright: ignore[reportAssignmentType]
     export_context: ExportContextContainer
     export_context = DependenciesContainer()  # pyright: ignore[reportAssignmentType]
+    global_cli: GlobalCliContainer
+    global_cli = DependenciesContainer()  # pyright: ignore[reportAssignmentType]
 
     cli_argument_reader = Singleton(CliArgumentReader)
     cli_shared_argument_registrar = Singleton(CliSharedArgumentRegistrar)
@@ -76,12 +80,19 @@ class CliContainer(containers.DeclarativeContainer):
         export_context_service=export_context.export_context_service,
     )
 
+    global_cli_cli_contribution = Factory(
+        GlobalCliCliContribution,
+        cli_argument_reader=cli_argument_reader,
+        global_cli_setup_service=global_cli.global_cli_setup_service,
+    )
+
     cli_contributions = List(
         project_init_cli_contribution,
         project_policy_cli_contribution,
         tree_generation_cli_contribution,
         include_generation_cli_contribution,
         export_context_cli_contribution,
+        global_cli_cli_contribution,
     )
 
     interactive_menu_runner = Factory(

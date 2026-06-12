@@ -38,6 +38,8 @@ dev-tools run --help
 dev-tools export-context --help
 dev-tools projects --help
 dev-tools policies --help
+dev-tools global-cli --help
+dev-tools global-cli setup --help
 ```
 
 Use the interactive menu to see the workflow-oriented actions contributed by
@@ -59,6 +61,7 @@ operation is contributed by a domain through a `CliContribution`.
 | `tree_generation` | `TreeGenerationCliContribution` | `tree` | Show project tree |
 | `include_generation` | `IncludeGenerationCliContribution` | `update-include-files` | Update include files catalog |
 | `export_context` | `ExportContextCliContribution` | `run`, `export-context` | Run export with about + tree; Run export without about/tree; Run export with tree only; Run export with about only |
+| `global_cli` | `GlobalCliCliContribution` | `global-cli` | |
 
 ## Common commands
 
@@ -81,7 +84,57 @@ dev-tools policies plan --all
 dev-tools policies apply --project-root /absolute/project/path
 dev-tools policies plan --project-root /absolute/project/path --force
 dev-tools policies apply --project-root /absolute/project/path --force
+dev-tools global-cli status
+dev-tools global-cli setup --dry-run
+dev-tools global-cli setup
 ```
+
+## Global CLI layout
+
+`dev-tools` owns one machine-local standard for globally installed CLI tools:
+
+```text
+C:\Users\User\repositories\global_cli\
+  bin\
+  uv_tools\
+  README.md
+```
+
+`bin` is the only directory from this layout that should be in `PATH`.
+`uv_tools` stores uv-managed tool environments. `dev-tools` does not move
+existing virtual environments or executable files into this layout; `uv tool`
+remains the canonical installation mechanism.
+
+Prepare or inspect the layout explicitly:
+
+```bash
+dev-tools global-cli status
+dev-tools global-cli setup --dry-run
+dev-tools global-cli setup
+```
+
+The setup command:
+
+- creates `global_cli\`, `global_cli\bin\`, `global_cli\uv_tools\`, and
+  `global_cli\README.md` when missing;
+- writes user-level `UV_TOOL_BIN_DIR` to `global_cli\bin`;
+- writes user-level `UV_TOOL_DIR` to `global_cli\uv_tools`;
+- ensures the user-level `Path` contains `global_cli\bin` and does not contain
+  `global_cli\`, `global_cli\uv_tools`, or the default non-canonical uv tool
+  bin `C:\Users\User\.local\bin`;
+- preserves unrelated `Path` entries and existing `global_cli\README.md`
+  content;
+- does not move existing executable shims or uv tool environments.
+
+When bootstrapping this project before `dev-tools` is already installed
+globally, run the command from the repository and then install with uv:
+
+```bash
+uv run dev-tools global-cli setup
+uv tool install --reinstall .
+```
+
+Open a new terminal after setup so Windows loads the updated user environment.
 
 ## CLI extension model
 

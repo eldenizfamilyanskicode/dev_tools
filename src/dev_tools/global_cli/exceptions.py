@@ -1,0 +1,2 @@
+class GlobalCliSetupError(RuntimeError):
+    pass
