@@ -19,6 +19,8 @@ from dev_tools.project_bootstrap.json_operation_builder import JsonOperationBuil
 from dev_tools.project_bootstrap.managed_block_service import ManagedBlockService
 from dev_tools.project_bootstrap.models import (
     ApplicationType,
+    BootstrapFileAction,
+    BootstrapFileOperation,
     ProjectBootstrapRequest,
     StrictnessLevel,
     ToolName,
@@ -114,6 +116,36 @@ def bootstrap_project(
         dry_run=dry_run,
     )
     project_bootstrap_service.bootstrap_project(request)
+
+
+def build_bootstrap_plan(
+    project_root_path: Path,
+    application_type: ApplicationType = ApplicationType.FULL,
+    tool_names: tuple[ToolName, ...] = (ToolName.ALL,),
+    strictness_level: StrictnessLevel = StrictnessLevel.HIGH,
+    force: bool = False,
+    vscode_user_settings_file_path: Path | None = None,
+) -> tuple[BootstrapFileOperation, ...]:
+    resolved_vscode_user_settings_file_path: Path = (
+        project_root_path / ".test_vscode_user" / "settings.json"
+    )
+    if vscode_user_settings_file_path is not None:
+        resolved_vscode_user_settings_file_path = vscode_user_settings_file_path
+
+    project_bootstrap_service: ProjectBootstrapService = (
+        build_project_bootstrap_service(
+            resolved_vscode_user_settings_file_path,
+        )
+    )
+    request: ProjectBootstrapRequest = ProjectBootstrapRequest(
+        project_root_path=project_root_path,
+        application_type=application_type,
+        tool_names=tool_names,
+        strictness_level=strictness_level,
+        force=force,
+        dry_run=True,
+    )
+    return project_bootstrap_service.build_plan(request).operations
 
 
 def read_json(file_path: Path) -> dict[str, Any]:
@@ -428,6 +460,30 @@ def test_existing_pyproject_receives_missing_managed_sections(tmp_path: Path) ->
     assert pyproject_content.count("[project]") == 1
     assert "[tool.uv]" in pyproject_content
     assert "[tool.ruff]" in pyproject_content
+
+
+def test_existing_pyproject_reports_preserved_managed_sections(
+    tmp_path: Path,
+) -> None:
+    pyproject_file_path: Path = tmp_path / "pyproject.toml"
+    pyproject_file_path.write_text(
+        '[project]\nname = "custom"\n\n[tool.ruff]\nline-length = 100\n',
+        encoding="utf-8",
+    )
+
+    operations: tuple[BootstrapFileOperation, ...] = build_bootstrap_plan(tmp_path)
+    pyproject_operation: BootstrapFileOperation | None = None
+
+    for operation in operations:
+        if operation.relative_file_path == Path("pyproject.toml"):
+            pyproject_operation = operation
+            break
+
+    assert pyproject_operation is not None
+    assert pyproject_operation.action == BootstrapFileAction.UPDATE
+    assert "[project]" in pyproject_operation.preserved_paths
+    assert "[tool.ruff]" in pyproject_operation.preserved_paths
+    assert "[tool.uv]" in pyproject_operation.applied_paths
 
 
 def test_invalid_pyproject_is_not_overwritten_by_default(tmp_path: Path) -> None:

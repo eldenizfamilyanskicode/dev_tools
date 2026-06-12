@@ -62,6 +62,33 @@ class TomlSectionMergeService:
 
         return tuple(missing_section_names)
 
+    def collect_preserved_section_names(
+        self,
+        current_content: str,
+        managed_content: str,
+    ) -> tuple[str, ...]:
+        self.validate_toml(current_content)
+        self.validate_toml(managed_content)
+
+        current_section_names: tuple[str, ...] = self.collect_section_names(
+            current_content
+        )
+        managed_sections: tuple[tuple[str, str], ...] = self.collect_sections(
+            managed_content
+        )
+        preserved_section_names: list[str] = []
+
+        for section_name, section_content in managed_sections:
+            if section_content == "":
+                continue
+
+            if section_name not in current_section_names:
+                continue
+
+            preserved_section_names.append(f"[{section_name}]")
+
+        return tuple(preserved_section_names)
+
     def validate_toml(self, content: str) -> None:
         if not content.strip():
             return

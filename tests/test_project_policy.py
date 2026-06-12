@@ -173,9 +173,86 @@ def test_policy_plan_shows_revision_action_and_merge_details(tmp_path: Path) -> 
     )
 
     assert "package_json.typescript_tooling_defaults@1 [current]" in result_text
-    assert "action: skip; status: skipped_existing" in result_text
+    assert "action: skip; status: already_satisfied" in result_text
     assert "target: package.json; merge: json_merge" in result_text
     assert "preserved: name, version" in result_text
+
+
+def test_apply_policy_updates_preserves_user_values_and_records_satisfied_status(
+    tmp_path: Path,
+) -> None:
+    project_root_path: Path = tmp_path / "sample_project"
+    project_root_path.mkdir()
+    package_file_path: Path = project_root_path / "package.json"
+    package_file_path.write_text(
+        json.dumps(
+            {
+                "name": "custom-package",
+                "version": "9.9.9",
+            }
+        ),
+        encoding="utf-8",
+    )
+    project_policy_service: ProjectPolicyService = build_project_policy_service(
+        index_file_path=tmp_path / "index" / "project_index.toml",
+        vscode_user_settings_file_path=tmp_path / "vscode" / "settings.json",
+    )
+    bootstrap_and_record_project(
+        project_policy_service=project_policy_service,
+        project_root_path=project_root_path,
+    )
+
+    result_text: str = project_policy_service.apply_policy_updates(
+        requested_project_root=project_root_path,
+        include_all_projects=False,
+    )
+    package_document: dict[str, object] = json.loads(
+        package_file_path.read_text(encoding="utf-8")
+    )
+    manifest_content: str = (
+        project_root_path / ".dev_tools" / "policy_manifest.toml"
+    ).read_text(encoding="utf-8")
+
+    assert "Applied project policy updates" in result_text
+    assert package_document["name"] == "custom-package"
+    assert package_document["version"] == "9.9.9"
+    assert 'status = "already_satisfied"' in manifest_content
+    assert 'preserved_paths = ["name", "version"]' in manifest_content
+
+
+def test_policy_plan_force_previews_overwrite_of_preserved_values(
+    tmp_path: Path,
+) -> None:
+    project_root_path: Path = tmp_path / "sample_project"
+    project_root_path.mkdir()
+    package_file_path: Path = project_root_path / "package.json"
+    package_file_path.write_text(
+        json.dumps(
+            {
+                "name": "custom-package",
+                "version": "9.9.9",
+            }
+        ),
+        encoding="utf-8",
+    )
+    project_policy_service: ProjectPolicyService = build_project_policy_service(
+        index_file_path=tmp_path / "index" / "project_index.toml",
+        vscode_user_settings_file_path=tmp_path / "vscode" / "settings.json",
+    )
+    bootstrap_and_record_project(
+        project_policy_service=project_policy_service,
+        project_root_path=project_root_path,
+    )
+
+    result_text: str = project_policy_service.render_update_plan(
+        requested_project_root=project_root_path,
+        include_all_projects=False,
+        force=True,
+    )
+
+    assert "package_json.typescript_tooling_defaults@1 [drift]" in result_text
+    assert "action: update; status: applied" in result_text
+    assert "applied: name, version" in result_text
 
 
 def test_apply_policy_updates_uses_global_index(tmp_path: Path) -> None:

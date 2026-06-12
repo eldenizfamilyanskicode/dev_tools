@@ -53,6 +53,12 @@ class PyprojectOperationBuilder:
                     managed_content=content,
                 )
             )
+            preserved_section_names: tuple[str, ...] = (
+                self.toml_section_merge_service.collect_preserved_section_names(
+                    current_content=current_content,
+                    managed_content=content,
+                )
+            )
             merged_content: str = (
                 self.toml_section_merge_service.merge_missing_sections(
                     current_content=current_content,
@@ -77,6 +83,7 @@ class PyprojectOperationBuilder:
             content=merged_content,
             force=force,
             applied_paths=missing_section_names,
+            preserved_paths=preserved_section_names,
             reason=self.build_toml_merge_reason(missing_section_names),
         )
 
@@ -87,6 +94,7 @@ class PyprojectOperationBuilder:
         content: str,
         force: bool,
         applied_paths: tuple[str, ...] = (),
+        preserved_paths: tuple[str, ...] = (),
         conflict_paths: tuple[str, ...] = (),
         reason: str = "",
     ) -> BootstrapFileOperation:
@@ -100,6 +108,7 @@ class PyprojectOperationBuilder:
             policy_revision=POLICY_PYPROJECT_DEFAULTS_REVISION,
             merge_strategy="toml_missing_sections",
             applied_paths=applied_paths,
+            preserved_paths=preserved_paths,
             conflict_paths=conflict_paths,
             reason=reason,
         )
