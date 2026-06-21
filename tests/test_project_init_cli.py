@@ -71,6 +71,8 @@ def test_default_init_resolves_full_all_high() -> None:
         recording_service.initialize_arguments["strictness_level"]
         == StrictnessLevel.HIGH
     )
+    assert recording_service.initialize_arguments["manage_pyproject"] is True
+    assert recording_service.initialize_arguments["manage_package_json"] is True
 
 
 def test_explicit_init_arguments_parse_correctly() -> None:
@@ -129,3 +131,23 @@ def test_dry_run_prints_plan_without_initializing() -> None:
 
     assert recording_service.plan_arguments is not None
     assert recording_service.initialize_arguments is None
+
+
+def test_skip_project_file_arguments_parse_correctly() -> None:
+    recording_service: RecordingProjectInitService = run_init_command(
+        ["init", "--skip-pyproject", "--skip-package-json"]
+    )
+
+    assert recording_service.initialize_arguments is not None
+    assert recording_service.initialize_arguments["manage_pyproject"] is False
+    assert recording_service.initialize_arguments["manage_package_json"] is False
+
+
+def test_dry_run_receives_skip_project_file_arguments() -> None:
+    recording_service: RecordingProjectInitService = run_init_command(
+        ["init", "--dry-run", "--skip-pyproject", "--skip-package-json"]
+    )
+
+    assert recording_service.plan_arguments is not None
+    assert recording_service.plan_arguments["manage_pyproject"] is False
+    assert recording_service.plan_arguments["manage_package_json"] is False

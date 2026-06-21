@@ -64,6 +64,8 @@ def bootstrap_project(
     application_type: ApplicationType = ApplicationType.FULL,
     tool_names: tuple[ToolName, ...] = (ToolName.ALL,),
     strictness_level: StrictnessLevel = StrictnessLevel.HIGH,
+    manage_pyproject: bool = True,
+    manage_package_json: bool = True,
     force: bool = False,
     dry_run: bool = False,
 ) -> None:
@@ -75,6 +77,8 @@ def bootstrap_project(
         application_type=application_type,
         tool_names=tool_names,
         strictness_level=strictness_level,
+        manage_pyproject=manage_pyproject,
+        manage_package_json=manage_package_json,
         force=force,
         dry_run=dry_run,
     )
@@ -86,6 +90,8 @@ def build_bootstrap_plan(
     application_type: ApplicationType = ApplicationType.FULL,
     tool_names: tuple[ToolName, ...] = (ToolName.ALL,),
     strictness_level: StrictnessLevel = StrictnessLevel.HIGH,
+    manage_pyproject: bool = True,
+    manage_package_json: bool = True,
     force: bool = False,
 ) -> tuple[BootstrapFileOperation, ...]:
     project_bootstrap_service: ProjectBootstrapService = (
@@ -96,6 +102,8 @@ def build_bootstrap_plan(
         application_type=application_type,
         tool_names=tool_names,
         strictness_level=strictness_level,
+        manage_pyproject=manage_pyproject,
+        manage_package_json=manage_package_json,
         force=force,
         dry_run=True,
     )
@@ -259,6 +267,7 @@ def test_package_json_merge_preserves_existing_project_values(
     assert package_document["version"] == "9.9.9"
     assert package_scripts["typecheck"] == "custom-typecheck"
     assert package_scripts["format"] == "prettier --write ."
+    assert package_development_dependencies["playwright-chromium"] == "^1.61.0"
     assert package_development_dependencies["typescript"] == "5.0.0"
     assert package_development_dependencies["prettier"] == "^3.5.0"
 
@@ -296,6 +305,7 @@ def test_package_json_force_overwrites_managed_values(tmp_path: Path) -> None:
     assert package_document["name"] == tmp_path.name.replace("_", "-").lower()
     assert package_document["version"] == "0.1.0"
     assert package_scripts["typecheck"] == "tsc --noEmit"
+    assert package_development_dependencies["playwright-chromium"] == "^1.61.0"
     assert package_development_dependencies["typescript"] == "^5.8.0"
 
 
@@ -315,6 +325,7 @@ def test_package_json_preserved_only_merge_does_not_rewrite_file(
                 "format:check": "prettier --check .",
             },
             "devDependencies": {
+                "playwright-chromium": "^1.61.0",
                 "prettier": "^3.5.0",
                 "typescript": "5.0.0",
             },
@@ -418,6 +429,47 @@ def test_existing_pyproject_reports_preserved_managed_sections(
     assert "[project].version" in pyproject_operation.applied_paths
     assert "[tool.ruff].target-version" in pyproject_operation.applied_paths
     assert "[tool.uv]" in pyproject_operation.applied_paths
+
+
+def test_pyproject_management_can_be_skipped(tmp_path: Path) -> None:
+    pyproject_file_path: Path = tmp_path / "pyproject.toml"
+    initial_content: str = '[project]\nname = "custom"\n'
+    pyproject_file_path.write_text(initial_content, encoding="utf-8")
+
+    bootstrap_project(tmp_path, manage_pyproject=False)
+    operations: tuple[BootstrapFileOperation, ...] = build_bootstrap_plan(
+        tmp_path,
+        manage_pyproject=False,
+    )
+
+    assert pyproject_file_path.read_text(encoding="utf-8") == initial_content
+    assert Path("pyproject.toml") not in {
+        operation.relative_file_path for operation in operations
+    }
+
+
+def test_package_json_management_can_be_skipped(tmp_path: Path) -> None:
+    package_file_path: Path = tmp_path / "package.json"
+    initial_content: str = json.dumps({"name": "custom-package"})
+    package_file_path.write_text(initial_content, encoding="utf-8")
+
+    bootstrap_project(
+        tmp_path,
+        application_type=ApplicationType.TYPESCRIPT,
+        tool_names=(ToolName.PRETTIER,),
+        manage_package_json=False,
+    )
+    operations: tuple[BootstrapFileOperation, ...] = build_bootstrap_plan(
+        tmp_path,
+        application_type=ApplicationType.TYPESCRIPT,
+        tool_names=(ToolName.PRETTIER,),
+        manage_package_json=False,
+    )
+
+    assert package_file_path.read_text(encoding="utf-8") == initial_content
+    assert Path("package.json") not in {
+        operation.relative_file_path for operation in operations
+    }
 
 
 def test_invalid_pyproject_is_not_overwritten_by_default(tmp_path: Path) -> None:

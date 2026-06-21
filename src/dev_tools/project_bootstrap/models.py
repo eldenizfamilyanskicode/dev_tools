@@ -34,6 +34,8 @@ class ProjectBootstrapRequest(BaseModel):
     application_type: ApplicationType = ApplicationType.FULL
     tool_names: tuple[ToolName, ...] = (ToolName.ALL,)
     strictness_level: StrictnessLevel = StrictnessLevel.HIGH
+    manage_pyproject: bool = True
+    manage_package_json: bool = True
     force: bool = False
     dry_run: bool = False
 

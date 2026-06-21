@@ -91,6 +91,8 @@ def build_project_policy_service(
 def bootstrap_and_record_project(
     project_policy_service: ProjectPolicyService,
     project_root_path: Path,
+    manage_pyproject: bool = True,
+    manage_package_json: bool = True,
 ) -> None:
     context_file_path: Path = project_root_path / ".dev_tools" / "context.toml"
     context_file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -100,6 +102,8 @@ def bootstrap_and_record_project(
         application_type=ApplicationType.FULL,
         tool_names=(ToolName.ALL,),
         strictness_level=StrictnessLevel.HIGH,
+        manage_pyproject=manage_pyproject,
+        manage_package_json=manage_package_json,
         force=False,
         dry_run=False,
     )

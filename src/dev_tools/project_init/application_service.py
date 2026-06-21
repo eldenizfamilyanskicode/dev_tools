@@ -45,6 +45,8 @@ class ProjectInitService:
         application_type: ApplicationType = ApplicationType.FULL,
         tool_names: tuple[ToolName, ...] = (ToolName.ALL,),
         strictness_level: StrictnessLevel = StrictnessLevel.HIGH,
+        manage_pyproject: bool = True,
+        manage_package_json: bool = True,
         dry_run: bool = False,
     ) -> Path:
         project_root: Path = self.project_root_resolver.resolve_for_init(
@@ -79,6 +81,8 @@ class ProjectInitService:
             application_type=application_type,
             tool_names=tool_names,
             strictness_level=strictness_level,
+            manage_pyproject=manage_pyproject,
+            manage_package_json=manage_package_json,
             force=force,
             dry_run=False,
         )
@@ -102,6 +106,8 @@ class ProjectInitService:
         application_type: ApplicationType,
         tool_names: tuple[ToolName, ...],
         strictness_level: StrictnessLevel,
+        manage_pyproject: bool = True,
+        manage_package_json: bool = True,
     ) -> str:
         project_root: Path = self.project_root_resolver.resolve_for_init(
             requested_project_root
@@ -111,6 +117,8 @@ class ProjectInitService:
             application_type=application_type,
             tool_names=tool_names,
             strictness_level=strictness_level,
+            manage_pyproject=manage_pyproject,
+            manage_package_json=manage_package_json,
             force=force,
             dry_run=True,
         )

@@ -37,6 +37,8 @@ class ProjectPolicyInitSettings(BaseModel):
     application_type: ApplicationType
     tool_names: tuple[ToolName, ...]
     strictness_level: StrictnessLevel
+    manage_pyproject: bool = True
+    manage_package_json: bool = True
 
 
 class ProjectPolicyRecord(BaseModel):

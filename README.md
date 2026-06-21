@@ -68,6 +68,7 @@ operation is contributed by a domain through a `CliContribution`.
 ```bash
 dev-tools init
 dev-tools init --dry-run
+dev-tools init --skip-pyproject --skip-package-json
 dev-tools init --application-type python --toolset ruff,pyright --strictness high
 dev-tools init --application-type ts --toolset prettier --strictness medium
 dev-tools init .dev_tools/about_current_project.md
@@ -225,6 +226,18 @@ Use `--dry-run` to print the plan without writing files:
 ```bash
 dev-tools init --dry-run
 ```
+
+For mature projects where package metadata is already intentionally managed,
+skip the generated project-file policies:
+
+```bash
+dev-tools init --skip-pyproject --skip-package-json
+dev-tools init --application-type python --toolset ruff --skip-pyproject
+```
+
+These flags are recorded in `.dev_tools/policy_manifest.toml`, so later
+`dev-tools policies plan` and `dev-tools policies apply` continue to skip those
+files.
 
 Use `--force` when you intentionally want generated target files such as
 `pyproject.toml` or `package.json` to be overwritten.

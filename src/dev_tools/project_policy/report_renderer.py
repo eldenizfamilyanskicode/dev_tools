@@ -95,6 +95,7 @@ class ProjectPolicyReportRenderer:
                 f"{manifest.init_settings.application_type.value}, "
                 f"{self.format_tool_names(manifest.init_settings.tool_names)}, "
                 f"{manifest.init_settings.strictness_level.value}"
+                f"{self.format_manifest_management_suffix(manifest)}"
             )
             current_policy_revisions: dict[str, int] = (
                 self.build_current_policy_revisions(plan_entry.plan)
@@ -131,6 +132,19 @@ class ProjectPolicyReportRenderer:
         self.append_skipped_registered_projects(lines, project_index)
         return "\n".join(lines).rstrip() + "\n"
 
+    def append_init_settings_line(
+        self,
+        lines: list[str],
+        manifest: ProjectPolicyManifest,
+    ) -> None:
+        lines.append(
+            "  init: "
+            f"{manifest.init_settings.application_type.value}, "
+            f"{self.format_tool_names(manifest.init_settings.tool_names)}, "
+            f"{manifest.init_settings.strictness_level.value}"
+            f"{self.format_manifest_management_suffix(manifest)}"
+        )
+
     def render_update_plan(
         self,
         plan_entries: tuple[ProjectPolicyPlanEntry, ...],
@@ -149,12 +163,7 @@ class ProjectPolicyReportRenderer:
             manifest: ProjectPolicyManifest = plan_entry.manifest
             lines.append("")
             lines.append(str(manifest.project_root_path))
-            lines.append(
-                "  init: "
-                f"{manifest.init_settings.application_type.value}, "
-                f"{self.format_tool_names(manifest.init_settings.tool_names)}, "
-                f"{manifest.init_settings.strictness_level.value}"
-            )
+            self.append_init_settings_line(lines, manifest)
             self.append_policy_plan_lines(
                 lines=lines,
                 manifest=manifest,
@@ -197,6 +206,7 @@ class ProjectPolicyReportRenderer:
             lines.append("")
             lines.append(str(apply_result.manifest.project_root_path))
             lines.append(f"  manifest: {apply_result.manifest_file_path}")
+            self.append_init_settings_line(lines, apply_result.manifest)
             lines.append(f"  applied policies: {applied_policy_count}")
             lines.append(f"  conflict policies: {conflict_policy_count}")
             lines.append(f"  skipped policies: {skipped_policy_count}")
@@ -390,3 +400,20 @@ class ProjectPolicyReportRenderer:
             formatted_tool_names.append(tool_name.value)
 
         return ", ".join(formatted_tool_names)
+
+    def format_manifest_management_suffix(
+        self,
+        manifest: ProjectPolicyManifest,
+    ) -> str:
+        skipped_targets: list[str] = []
+
+        if not manifest.init_settings.manage_pyproject:
+            skipped_targets.append("pyproject.toml")
+
+        if not manifest.init_settings.manage_package_json:
+            skipped_targets.append("package.json")
+
+        if not skipped_targets:
+            return ""
+
+        return f"; skipped: {self.format_string_items(tuple(skipped_targets))}"

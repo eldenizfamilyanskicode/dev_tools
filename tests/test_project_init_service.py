@@ -80,6 +80,8 @@ def test_old_dev_tools_init_behavior_still_works(tmp_path: Path) -> None:
     assert include_file_update_service.requested_project_root == tmp_path
     assert len(project_bootstrap_service.requests) == 1
     assert len(project_policy_service.requests) == 1
+    assert project_bootstrap_service.requests[0].manage_pyproject is True
+    assert project_bootstrap_service.requests[0].manage_package_json is True
     assert ".dev_tools/" in (git_info_directory / "exclude").read_text(encoding="utf-8")
 
 

@@ -85,6 +85,8 @@ class ProjectPolicyService:
                 application_type=request.application_type,
                 tool_names=request.tool_names,
                 strictness_level=request.strictness_level,
+                manage_pyproject=request.manage_pyproject,
+                manage_package_json=request.manage_package_json,
             ),
             policies=self.build_policy_records(
                 operations=plan.operations,
@@ -277,6 +279,8 @@ class ProjectPolicyService:
             application_type=manifest.init_settings.application_type,
             tool_names=manifest.init_settings.tool_names,
             strictness_level=manifest.init_settings.strictness_level,
+            manage_pyproject=manifest.init_settings.manage_pyproject,
+            manage_package_json=manifest.init_settings.manage_package_json,
             force=force,
             dry_run=dry_run,
         )

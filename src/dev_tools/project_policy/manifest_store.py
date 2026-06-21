@@ -94,6 +94,16 @@ class ProjectPolicyManifestStore:
                 strictness_level=StrictnessLevel(
                     self.get_string(init_document, "strictness")
                 ),
+                manage_pyproject=self.get_optional_bool(
+                    init_document,
+                    "manage_pyproject",
+                    True,
+                ),
+                manage_package_json=self.get_optional_bool(
+                    init_document,
+                    "manage_package_json",
+                    True,
+                ),
             ),
             policies=tuple(policy_records),
         )
@@ -175,6 +185,14 @@ class ProjectPolicyManifestStore:
         )
         lines.append(f"toolset = {serialized_tool_names}")
         lines.append(f'strictness = "{manifest.init_settings.strictness_level.value}"')
+        manage_pyproject: str = self.serialize_bool(
+            manifest.init_settings.manage_pyproject
+        )
+        manage_package_json: str = self.serialize_bool(
+            manifest.init_settings.manage_package_json
+        )
+        lines.append(f"manage_pyproject = {manage_pyproject}")
+        lines.append(f"manage_package_json = {manage_package_json}")
 
         for policy_record in manifest.policies:
             lines.append("")
@@ -300,6 +318,22 @@ class ProjectPolicyManifestStore:
 
         return value
 
+    def get_optional_bool(
+        self,
+        document: dict[str, object],
+        key: str,
+        default: bool,
+    ) -> bool:
+        value: object | None = document.get(key)
+
+        if value is None:
+            return default
+
+        if not isinstance(value, bool):
+            raise TypeError(f"Expected `{key}` to be boolean.")
+
+        return value
+
     def get_int(self, document: dict[str, object], key: str) -> int:
         value: object | None = document.get(key)
 
@@ -346,6 +380,12 @@ class ProjectPolicyManifestStore:
             serialized_values.append(f'"{self.escape_string(value)}"')
 
         return "[" + ", ".join(serialized_values) + "]"
+
+    def serialize_bool(self, value: bool) -> str:
+        if value:
+            return "true"
+
+        return "false"
 
     def escape_string(self, value: str) -> str:
         escaped_value: str = value.replace("\\", "\\\\")

@@ -36,6 +36,43 @@ def test_record_initialized_project_writes_manifest_and_index(tmp_path: Path) ->
     assert 'status = "active"' in index_content
 
 
+def test_record_initialized_project_can_skip_project_file_policies(
+    tmp_path: Path,
+) -> None:
+    project_root_path: Path = tmp_path / "sample_project"
+    project_root_path.mkdir()
+    pyproject_file_path: Path = project_root_path / "pyproject.toml"
+    package_file_path: Path = project_root_path / "package.json"
+    pyproject_file_path.write_text('[project]\nname = "custom"\n', encoding="utf-8")
+    package_file_path.write_text(json.dumps({"name": "custom"}), encoding="utf-8")
+    project_policy_service: ProjectPolicyService = build_project_policy_service(
+        index_file_path=tmp_path / "index" / "project_index.toml",
+        vscode_user_settings_file_path=tmp_path / "vscode" / "settings.json",
+    )
+
+    bootstrap_and_record_project(
+        project_policy_service=project_policy_service,
+        project_root_path=project_root_path,
+        manage_pyproject=False,
+        manage_package_json=False,
+    )
+
+    manifest_content: str = (
+        project_root_path / ".dev_tools" / "policy_manifest.toml"
+    ).read_text(encoding="utf-8")
+
+    assert "manage_pyproject = false" in manifest_content
+    assert "manage_package_json = false" in manifest_content
+    assert "pyproject.uv_python_tooling_defaults" not in manifest_content
+    assert "package_json.typescript_tooling_defaults" not in manifest_content
+    assert pyproject_file_path.read_text(encoding="utf-8") == (
+        '[project]\nname = "custom"\n'
+    )
+    assert json.loads(package_file_path.read_text(encoding="utf-8")) == {
+        "name": "custom"
+    }
+
+
 def test_manifest_records_preserved_policy_paths(tmp_path: Path) -> None:
     project_root_path: Path = tmp_path / "sample_project"
     project_root_path.mkdir()
@@ -138,7 +175,7 @@ def test_policy_plan_reports_json_conflict_without_partial_write(
         package_file_path.read_text(encoding="utf-8")
     )
 
-    assert "package_json.typescript_tooling_defaults@1 [conflict]" in result_text
+    assert "package_json.typescript_tooling_defaults@2 [conflict]" in result_text
     assert "action: conflict; status: conflict" in result_text
     assert "conflicts: scripts" in result_text
     assert package_document == {"scripts": "custom-script-shape"}
@@ -171,7 +208,7 @@ def test_policy_plan_shows_revision_action_and_merge_details(tmp_path: Path) -> 
         include_all_projects=False,
     )
 
-    assert "package_json.typescript_tooling_defaults@1 [skipped]" in result_text
+    assert "package_json.typescript_tooling_defaults@2 [skipped]" in result_text
     assert "action: skip; status: skipped_existing" in result_text
     assert "target: package.json; merge: json_merge" in result_text
     assert "preserved: name, version" in result_text
@@ -249,7 +286,7 @@ def test_policy_plan_force_previews_overwrite_of_preserved_values(
         force=True,
     )
 
-    assert "package_json.typescript_tooling_defaults@1 [drift]" in result_text
+    assert "package_json.typescript_tooling_defaults@2 [drift]" in result_text
     assert "action: update; status: applied" in result_text
     assert "applied: name, version" in result_text
 
@@ -279,6 +316,38 @@ def test_apply_policy_updates_uses_global_index(tmp_path: Path) -> None:
     assert "[tool.uv]" in pyproject_content
     assert "[tool.ruff]" in pyproject_content
     assert pyproject_content.count("[project]") == 1
+
+
+def test_apply_policy_updates_honors_skipped_project_file_policies(
+    tmp_path: Path,
+) -> None:
+    project_root_path: Path = tmp_path / "sample_project"
+    project_root_path.mkdir()
+    pyproject_file_path: Path = project_root_path / "pyproject.toml"
+    package_file_path: Path = project_root_path / "package.json"
+    pyproject_content: str = '[project]\nname = "custom"\n'
+    package_content: str = json.dumps({"name": "custom"})
+    pyproject_file_path.write_text(pyproject_content, encoding="utf-8")
+    package_file_path.write_text(package_content, encoding="utf-8")
+    project_policy_service: ProjectPolicyService = build_project_policy_service(
+        index_file_path=tmp_path / "index" / "project_index.toml",
+        vscode_user_settings_file_path=tmp_path / "vscode" / "settings.json",
+    )
+    bootstrap_and_record_project(
+        project_policy_service=project_policy_service,
+        project_root_path=project_root_path,
+        manage_pyproject=False,
+        manage_package_json=False,
+    )
+
+    result_text: str = project_policy_service.apply_policy_updates(
+        requested_project_root=project_root_path,
+        include_all_projects=False,
+    )
+
+    assert "skipped: pyproject.toml, package.json" in result_text
+    assert pyproject_file_path.read_text(encoding="utf-8") == pyproject_content
+    assert package_file_path.read_text(encoding="utf-8") == package_content
 
 
 def test_apply_policy_updates_force_overwrites_conflicting_managed_values(

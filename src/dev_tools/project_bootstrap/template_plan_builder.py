@@ -102,32 +102,34 @@ class TemplatePlanBuilder:
                     merge_strategy="json_merge",
                 )
 
-            operations.append(
-                self.pyproject_operation_builder.build_operation(
-                    project_root_path=project_root_path,
-                    content=self.template_content_builder.build_pyproject_content(
+            if request.manage_pyproject:
+                operations.append(
+                    self.pyproject_operation_builder.build_operation(
                         project_root_path=project_root_path,
-                        strictness_level=request.strictness_level,
-                        expanded_tool_names=expanded_tool_names,
-                    ),
-                    force=request.force,
+                        content=self.template_content_builder.build_pyproject_content(
+                            project_root_path=project_root_path,
+                            strictness_level=request.strictness_level,
+                            expanded_tool_names=expanded_tool_names,
+                        ),
+                        force=request.force,
+                    )
                 )
-            )
 
         if self.includes_typescript(request.application_type):
-            self.add_json_operation(
-                operations=operations,
-                project_root_path=project_root_path,
-                relative_file_path=Path("package.json"),
-                managed_data=self.template_content_builder.build_package_json_data(
-                    project_root_path
-                ),
-                force=request.force,
-                create_only=False,
-                policy_id=POLICY_PACKAGE_JSON_ID,
-                policy_revision=POLICY_PACKAGE_JSON_REVISION,
-                merge_strategy="json_merge",
-            )
+            if request.manage_package_json:
+                self.add_json_operation(
+                    operations=operations,
+                    project_root_path=project_root_path,
+                    relative_file_path=Path("package.json"),
+                    managed_data=self.template_content_builder.build_package_json_data(
+                        project_root_path
+                    ),
+                    force=request.force,
+                    create_only=False,
+                    policy_id=POLICY_PACKAGE_JSON_ID,
+                    policy_revision=POLICY_PACKAGE_JSON_REVISION,
+                    merge_strategy="json_merge",
+                )
             self.add_json_operation(
                 operations=operations,
                 project_root_path=project_root_path,

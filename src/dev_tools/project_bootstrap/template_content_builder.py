@@ -114,6 +114,7 @@ testpaths = ["tests"]
                 "format:check": "prettier --check .",
             },
             "devDependencies": {
+                "playwright-chromium": "^1.61.0",
                 "prettier": "^3.5.0",
                 "typescript": "^5.8.0",
             },

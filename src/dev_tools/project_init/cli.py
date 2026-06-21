@@ -81,6 +81,20 @@ class ProjectInitCliContribution:
             help="Generated bootstrap strictness level.",
         )
         init_parser.add_argument(
+            "--skip-pyproject",
+            action="store_false",
+            dest="manage_pyproject",
+            default=True,
+            help="Do not create or update pyproject.toml.",
+        )
+        init_parser.add_argument(
+            "--skip-package-json",
+            action="store_false",
+            dest="manage_package_json",
+            default=True,
+            help="Do not create or update package.json.",
+        )
+        init_parser.add_argument(
             "--dry-run",
             action="store_true",
             help="Print the project bootstrap plan without modifying files.",
@@ -112,6 +126,14 @@ class ProjectInitCliContribution:
         application_type: ApplicationType = self.resolve_application_type(arguments)
         tool_names: tuple[ToolName, ...] = self.resolve_tool_names(arguments)
         strictness_level: StrictnessLevel = self.resolve_strictness_level(arguments)
+        manage_pyproject: bool = self.cli_argument_reader.get_bool_argument(
+            arguments=arguments,
+            argument_name="manage_pyproject",
+        )
+        manage_package_json: bool = self.cli_argument_reader.get_bool_argument(
+            arguments=arguments,
+            argument_name="manage_package_json",
+        )
         dry_run: bool = self.cli_argument_reader.get_bool_argument(
             arguments=arguments,
             argument_name="dry_run",
@@ -124,6 +146,8 @@ class ProjectInitCliContribution:
                 application_type=application_type,
                 tool_names=tool_names,
                 strictness_level=strictness_level,
+                manage_pyproject=manage_pyproject,
+                manage_package_json=manage_package_json,
             )
             print(plan_text, end="")
             return 0
@@ -135,6 +159,8 @@ class ProjectInitCliContribution:
             application_type=application_type,
             tool_names=tool_names,
             strictness_level=strictness_level,
+            manage_pyproject=manage_pyproject,
+            manage_package_json=manage_package_json,
         )
         return 0
 
@@ -146,6 +172,8 @@ class ProjectInitCliContribution:
             application_type=ApplicationType.FULL,
             tool_names=(ToolName.ALL,),
             strictness_level=StrictnessLevel.HIGH,
+            manage_pyproject=True,
+            manage_package_json=True,
         )
         return 0
 
@@ -157,6 +185,8 @@ class ProjectInitCliContribution:
         application_type: ApplicationType,
         tool_names: tuple[ToolName, ...],
         strictness_level: StrictnessLevel,
+        manage_pyproject: bool,
+        manage_package_json: bool,
     ) -> Path:
         initialized_project_root: Path = self.project_init_service.initialize_project(
             requested_project_root=requested_project_root,
@@ -165,6 +195,8 @@ class ProjectInitCliContribution:
             application_type=application_type,
             tool_names=tool_names,
             strictness_level=strictness_level,
+            manage_pyproject=manage_pyproject,
+            manage_package_json=manage_package_json,
             dry_run=False,
         )
         print(f"Initialized dev tools context: {initialized_project_root}")
@@ -274,6 +306,7 @@ class ProjectInitCliContribution:
   dev-tools init
   dev-tools init --dry-run
   dev-tools init --application-type python --toolset ruff,pyright --strictness high
+  dev-tools init --skip-pyproject --skip-package-json
   dev-tools init .dev_tools/about_current_project.md
   dev-tools init --about-file docs/about_current_project.md
   dev-tools init --project-root /absolute/project/path
