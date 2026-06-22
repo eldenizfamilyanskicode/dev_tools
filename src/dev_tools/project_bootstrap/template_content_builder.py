@@ -60,6 +60,7 @@ class TemplateContentBuilder:
             development_dependencies.append('"ruff"')
 
         development_dependencies.append('"pytest"')
+        development_dependencies.append('"pytest-cov"')
         dependencies_content: str = ",\n    ".join(development_dependencies)
         mypy_strict_value: str = "true"
 

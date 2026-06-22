@@ -389,6 +389,16 @@ def test_existing_pyproject_receives_missing_managed_sections(tmp_path: Path) ->
     assert "[tool.ruff]" in pyproject_content
 
 
+def test_new_pyproject_includes_pytest_cov_dev_dependency(tmp_path: Path) -> None:
+    bootstrap_project(tmp_path)
+
+    pyproject_content: str = (tmp_path / "pyproject.toml").read_text(
+        encoding="utf-8",
+    )
+
+    assert '"pytest-cov"' in pyproject_content
+
+
 def test_existing_pyproject_receives_missing_managed_options(tmp_path: Path) -> None:
     pyproject_file_path: Path = tmp_path / "pyproject.toml"
     pyproject_file_path.write_text(
