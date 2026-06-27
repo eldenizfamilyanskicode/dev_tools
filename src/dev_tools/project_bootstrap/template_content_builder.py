@@ -16,22 +16,6 @@ class TemplateContentBuilder:
 
         return "${workspaceFolder}/.venv/bin/python"
 
-    def build_pyright_config(self, strictness_level: StrictnessLevel) -> JsonObject:
-        return {
-            "typeCheckingMode": self.map_python_type_checking_mode(strictness_level),
-            "venvPath": ".",
-            "venv": ".venv",
-            "exclude": [
-                ".venv",
-                "venv",
-                "node_modules",
-                "**/__pycache__",
-                "dist",
-                "build",
-                ".dev_tools",
-            ],
-        }
-
     def map_python_type_checking_mode(
         self,
         strictness_level: StrictnessLevel,
@@ -67,6 +51,28 @@ class TemplateContentBuilder:
         if strictness_level == StrictnessLevel.LOW:
             mypy_strict_value = "false"
 
+        pyright_section: str = ""
+
+        if self.has_tool(expanded_tool_names, ToolName.PYRIGHT):
+            pyright_type_checking_mode: str = self.map_python_type_checking_mode(
+                strictness_level
+            )
+            pyright_section = f'''
+[tool.pyright]
+typeCheckingMode = "{pyright_type_checking_mode}"
+venvPath = "."
+venv = ".venv"
+exclude = [
+    ".venv",
+    "venv",
+    "node_modules",
+    "**/__pycache__",
+    "dist",
+    "build",
+    ".dev_tools",
+]
+'''
+
         return f'''[project]
 name = "{project_name}"
 version = "0.1.0"
@@ -101,7 +107,7 @@ module = [
 ]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-'''
+{pyright_section}'''
 
     def build_package_json_data(self, project_root_path: Path) -> JsonObject:
         return {

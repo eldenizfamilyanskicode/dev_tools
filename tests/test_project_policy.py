@@ -29,9 +29,18 @@ def test_record_initialized_project_writes_manifest_and_index(tmp_path: Path) ->
     index_content: str = (tmp_path / "index" / "project_index.toml").read_text(
         encoding="utf-8"
     )
+    status_text: str = project_policy_service.render_policy_status(
+        requested_project_root=project_root_path,
+        include_all_projects=False,
+    )
 
     assert "gitignore.managed_block.common_local_artifacts" in manifest_content
     assert "pyproject.uv_python_tooling_defaults" in manifest_content
+    assert "pyright.config.python_type_checking" not in manifest_content
+    assert "pyrightconfig.json" not in manifest_content
+    assert "pyproject.uv_python_tooling_defaults@2" in status_text
+    assert "pyright.config.python_type_checking" not in status_text
+    assert "pyrightconfig.json" not in status_text
     assert f'project_root = "{project_root_path.as_posix()}"' in index_content
     assert 'status = "active"' in index_content
 
@@ -214,6 +223,31 @@ def test_policy_plan_shows_revision_action_and_merge_details(tmp_path: Path) -> 
     assert "preserved: name, version" in result_text
 
 
+def test_policy_plan_uses_pyproject_as_pyright_source_of_truth(
+    tmp_path: Path,
+) -> None:
+    project_root_path: Path = tmp_path / "sample_project"
+    project_root_path.mkdir()
+    project_policy_service: ProjectPolicyService = build_project_policy_service(
+        index_file_path=tmp_path / "index" / "project_index.toml",
+        vscode_user_settings_file_path=tmp_path / "vscode" / "settings.json",
+    )
+    bootstrap_and_record_project(
+        project_policy_service=project_policy_service,
+        project_root_path=project_root_path,
+    )
+
+    result_text: str = project_policy_service.render_update_plan(
+        requested_project_root=project_root_path,
+        include_all_projects=False,
+    )
+
+    assert "pyproject.uv_python_tooling_defaults@2" in result_text
+    assert "target: pyproject.toml; merge: toml_missing_sections" in result_text
+    assert "pyright.config.python_type_checking" not in result_text
+    assert "pyrightconfig.json" not in result_text
+
+
 def test_apply_policy_updates_preserves_user_values_and_records_satisfied_status(
     tmp_path: Path,
 ) -> None:
@@ -313,8 +347,11 @@ def test_apply_policy_updates_uses_global_index(tmp_path: Path) -> None:
     pyproject_content: str = pyproject_file_path.read_text(encoding="utf-8")
 
     assert "Applied project policy updates" in result_text
+    assert "pyright.config.python_type_checking" not in result_text
+    assert "pyrightconfig.json" not in result_text
     assert "[tool.uv]" in pyproject_content
     assert "[tool.ruff]" in pyproject_content
+    assert "[tool.pyright]" in pyproject_content
     assert pyproject_content.count("[project]") == 1
 
 

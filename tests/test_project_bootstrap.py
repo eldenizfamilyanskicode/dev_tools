@@ -210,7 +210,66 @@ def test_vscode_settings_json_merge_preserves_unknown_keys(
     assert settings_data["python.defaultInterpreterPath"] == (
         "${workspaceFolder}/.venv/bin/python"
     )
-    assert settings_data["python.analysis.typeCheckingMode"] == "strict"
+    assert settings_data["python.terminal.activateEnvironment"] is True
+    assert settings_data["ruff.nativeServer"] == "on"
+    assert "python.analysis.typeCheckingMode" not in settings_data
+
+
+def test_python_bootstrap_writes_pyright_settings_to_pyproject(
+    tmp_path: Path,
+) -> None:
+    bootstrap_project(
+        tmp_path,
+        application_type=ApplicationType.PYTHON,
+        tool_names=(ToolName.RUFF, ToolName.PYRIGHT),
+        strictness_level=StrictnessLevel.MEDIUM,
+    )
+
+    pyproject_content: str = (tmp_path / "pyproject.toml").read_text(
+        encoding="utf-8",
+    )
+    settings_data: dict[str, Any] = read_json(
+        tmp_path / ".vscode" / "settings.json"
+    )
+
+    assert "[tool.pyright]" in pyproject_content
+    assert 'typeCheckingMode = "standard"' in pyproject_content
+    assert 'venvPath = "."' in pyproject_content
+    assert 'venv = ".venv"' in pyproject_content
+    assert '"**/__pycache__"' in pyproject_content
+    assert not (tmp_path / "pyrightconfig.json").exists()
+    assert "python.analysis.typeCheckingMode" not in settings_data
+
+
+def test_python_bootstrap_plan_uses_pyproject_as_pyright_source_of_truth(
+    tmp_path: Path,
+) -> None:
+    operations: tuple[BootstrapFileOperation, ...] = build_bootstrap_plan(
+        tmp_path,
+        application_type=ApplicationType.PYTHON,
+        tool_names=(ToolName.RUFF, ToolName.PYRIGHT),
+    )
+    operation_paths: set[Path] = {
+        operation.relative_file_path for operation in operations
+    }
+    pyproject_operation: BootstrapFileOperation | None = None
+    settings_operation: BootstrapFileOperation | None = None
+
+    for operation in operations:
+        if operation.relative_file_path == Path("pyproject.toml"):
+            pyproject_operation = operation
+
+        if operation.relative_file_path == Path(".vscode/settings.json"):
+            settings_operation = operation
+
+    assert Path("pyrightconfig.json") not in operation_paths
+    assert pyproject_operation is not None
+    assert pyproject_operation.content is not None
+    assert "[tool.pyright]" in pyproject_operation.content
+    assert 'typeCheckingMode = "strict"' in pyproject_operation.content
+    assert settings_operation is not None
+    assert settings_operation.content is not None
+    assert "python.analysis.typeCheckingMode" not in settings_operation.content
 
 
 def test_vscode_extensions_json_merge_avoids_duplicates(
@@ -387,6 +446,7 @@ def test_existing_pyproject_receives_missing_managed_sections(tmp_path: Path) ->
     assert 'version = "0.1.0"' in pyproject_content
     assert "[tool.uv]" in pyproject_content
     assert "[tool.ruff]" in pyproject_content
+    assert "[tool.pyright]" in pyproject_content
 
 
 def test_new_pyproject_includes_pytest_cov_dev_dependency(tmp_path: Path) -> None:
@@ -439,6 +499,7 @@ def test_existing_pyproject_reports_preserved_managed_sections(
     assert "[project].version" in pyproject_operation.applied_paths
     assert "[tool.ruff].target-version" in pyproject_operation.applied_paths
     assert "[tool.uv]" in pyproject_operation.applied_paths
+    assert "[tool.pyright]" in pyproject_operation.applied_paths
 
 
 def test_pyproject_management_can_be_skipped(tmp_path: Path) -> None:

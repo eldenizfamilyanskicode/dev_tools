@@ -199,8 +199,8 @@ dev-tools init --toolset ruff --toolset pyright
 ```
 
 Strictness can be `low`, `medium`, or `high`. For Python, strictness maps to
-Pyright and VS Code type-checking mode. For TypeScript, `high` enables stricter
-`tsconfig.json` options.
+Pyright's `[tool.pyright]` `typeCheckingMode` in `pyproject.toml`. For
+TypeScript, `high` enables stricter `tsconfig.json` options.
 
 The bootstrap writes policy, not environments. It never creates or stores a
 `.venv`; it adds `.venv/` and common cache/build folders to `.gitignore`, sets
@@ -213,10 +213,11 @@ Merge policy is intentionally conservative:
 
 - missing files are created;
 - `.gitignore` uses a replaceable `dev-tools` managed block;
-- `.vscode/settings.json`, `.vscode/extensions.json`, and `pyrightconfig.json`
-  are JSON-merged while preserving unknown user keys;
+- `.vscode/settings.json` and `.vscode/extensions.json` are JSON-merged while
+  preserving unknown user keys;
 - `pyproject.toml` gets missing generated TOML sections and missing generated
-  keys inside existing sections; existing values are preserved;
+  keys inside existing sections, including Pyright's `[tool.pyright]` section
+  when Pyright is enabled; existing values are preserved;
 - `package.json` and `tsconfig.json` are JSON-merged while preserving unknown
   user keys;
 - `prettier.config.mjs` is created only when missing, unless `--force` is used.

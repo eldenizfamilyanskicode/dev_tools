@@ -12,8 +12,6 @@ from dev_tools.project_bootstrap.constants import (
     POLICY_PACKAGE_JSON_REVISION,
     POLICY_PRETTIER_CONFIG_ID,
     POLICY_PRETTIER_CONFIG_REVISION,
-    POLICY_PYRIGHT_CONFIG_ID,
-    POLICY_PYRIGHT_CONFIG_REVISION,
     POLICY_TSCONFIG_ID,
     POLICY_TSCONFIG_REVISION,
     POLICY_VSCODE_EXTENSIONS_ID,
@@ -86,34 +84,18 @@ class TemplatePlanBuilder:
                 request=request,
             )
 
-        if self.includes_python(request.application_type):
-            if self.has_tool(expanded_tool_names, ToolName.PYRIGHT):
-                self.add_json_operation(
-                    operations=operations,
+        if self.includes_python(request.application_type) and request.manage_pyproject:
+            operations.append(
+                self.pyproject_operation_builder.build_operation(
                     project_root_path=project_root_path,
-                    relative_file_path=Path("pyrightconfig.json"),
-                    managed_data=self.template_content_builder.build_pyright_config(
-                        request.strictness_level
+                    content=self.template_content_builder.build_pyproject_content(
+                        project_root_path=project_root_path,
+                        strictness_level=request.strictness_level,
+                        expanded_tool_names=expanded_tool_names,
                     ),
                     force=request.force,
-                    create_only=False,
-                    policy_id=POLICY_PYRIGHT_CONFIG_ID,
-                    policy_revision=POLICY_PYRIGHT_CONFIG_REVISION,
-                    merge_strategy="json_merge",
                 )
-
-            if request.manage_pyproject:
-                operations.append(
-                    self.pyproject_operation_builder.build_operation(
-                        project_root_path=project_root_path,
-                        content=self.template_content_builder.build_pyproject_content(
-                            project_root_path=project_root_path,
-                            strictness_level=request.strictness_level,
-                            expanded_tool_names=expanded_tool_names,
-                        ),
-                        force=request.force,
-                    )
-                )
+            )
 
         if self.includes_typescript(request.application_type):
             if request.manage_package_json:
@@ -257,11 +239,6 @@ class TemplatePlanBuilder:
                 )
             )
             managed_data["python.terminal.activateEnvironment"] = True
-            managed_data["python.analysis.typeCheckingMode"] = (
-                self.template_content_builder.map_python_type_checking_mode(
-                    request.strictness_level
-                )
-            )
 
             if self.has_tool(expanded_tool_names, ToolName.RUFF):
                 managed_data["ruff.nativeServer"] = "on"
